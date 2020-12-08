@@ -1,0 +1,31 @@
+<odoo>
+	<data>
+		<record id="product_template_form_view_inherit" model="ir.ui.view">
+			<field name="name">product.template.form.view.inherit</field>
+			<field name="model">product.template</field>
+			<field name="inherit_id" ref="product.product_template_form_view"/>
+			<field name="arch" type="xml">
+				<field name="uom_id" position="after">
+					<field name="uom_id2"/>
+					<field name="uom_id3"/>
+					<field name="qty2"/>
+					<field name="qty3"/>
+				</field>
+			</field>
+		</record>
+
+		<record id="product_template_tree_view_inherit" model="ir.ui.view">
+			<field name="name">product.template.product.tree.inherit</field>
+			<field name="model">product.template</field>
+			<field name="inherit_id" ref="product.product_template_tree_view"/>
+			<field name="arch" type="xml">
+				<field name="uom_id" position="after">
+					<field name="uom_id2" readonly="1" optional="show" groups="uom.group_uom"/>
+					<field name="uom_id3" readonly="1" optional="show" groups="uom.group_uom"/>
+					
+				</field>
+			</field>
+		</record>
+
+	</data>
+</odoo>

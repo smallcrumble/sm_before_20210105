@@ -1,0 +1,17 @@
+<odoo>
+	<data>
+		<record id="purchase_order_form_inherit2" model="ir.ui.view">
+			<field name="name">purchase.order.form.inherit2</field>
+			<field name="model">purchase.order</field>
+			<field name="inherit_id" ref="purchase.purchase_order_form"/>
+			<field name="arch" type="xml">
+				<field name="product_uom" position="after">
+					<field name="product_qty2"/>
+					<field name="product_uom2"/>
+					<field name="product_qty3"/>
+					<field name="product_uom3"/>
+				</field>
+			</field>
+		</record>
+	</data>
+</odoo>
