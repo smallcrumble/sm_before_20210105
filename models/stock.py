@@ -3,7 +3,7 @@
 from odoo import models, fields
 
 
-class Picking(models.Model):
+'''class Picking(models.Model):
 	_inherit = "stock.picking"
 	
 	qty1 = fields.Float('Demand 1')
@@ -12,9 +12,9 @@ class Picking(models.Model):
 	qty2 = fields.Float('Demand 2')
 	done2 = fields.Float('Done 2')
 	uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
-	
+'''
 
-class Picking(models.Model):
+class StockMove(models.Model):
 	_inherit = "stock.move"
 	
 	qty1 = fields.Float('Demand 1')
