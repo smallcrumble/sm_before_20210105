@@ -3,7 +3,7 @@
 from odoo import models, fields
 
 class PurchaseOrderLine(models.Model):
-	_inherits = "purchase.order.line"
+	_inherit = "purchase.order.line"
 
 	qty1 = fields.Float(string='Qty 1', digits='Product Unit of Measure')
 	uom1 = fields.Many2one('uom.uom', string='UoM 1')
