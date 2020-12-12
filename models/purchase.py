@@ -13,7 +13,7 @@ class PurchaseOrderLine(models.Model):
 	def _prepare_stock_move_vals(self, picking, price_unit, product_uom_qty, product_uom):
 		res = super(PurchaseOrderLine, self)._prepare_stock_move_vals(picking, price_unit, product_uom_qty, product_uom)
 		res.append({
-			'qty1' : self.qty1,
-			'uom1' : self.uom1.id,
+			'qty1': self.qty1,
+			'uom1': self.uom1.id,
 		})
 		return res
