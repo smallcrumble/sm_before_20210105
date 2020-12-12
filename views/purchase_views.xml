@@ -6,10 +6,10 @@
 			<field name="inherit_id" ref="purchase.purchase_order_form"/>
 			<field name="arch" type="xml">
 				<xpath expr="//field[@name='product_qty']" position="before">	
-					<field name="product_qty2"/>
-					<field name="product_uom2" options="{'no_create': True}"/>
-					<field name="product_qty3"/>
-					<field name="product_uom3" options="{'no_create': True}"/>
+					<field name="qty1"/>
+					<field name="uom1" options="{'no_create': True}"/>
+					<field name="qty2"/>
+					<field name="uom2" options="{'no_create': True}"/>
 				</xpath>
 			</field>
 		</record>

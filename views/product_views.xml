@@ -6,10 +6,10 @@
 			<field name="inherit_id" ref="product.product_template_form_view"/>
 			<field name="arch" type="xml">
 				<field name="uom_id" position="after">
-					<field name="uom_id2"/>
-					<field name="uom_id3"/>
+					<field name="uom1"/>
+					<field name="uom2"/>
+					<field name="qty1"/>
 					<field name="qty2"/>
-					<field name="qty3"/>
 				</field>
 			</field>
 		</record>
@@ -20,10 +20,10 @@
 			<field name="inherit_id" ref="product.product_template_tree_view"/>
 			<field name="arch" type="xml">
 				<field name="uom_id" position="after">
+					<field name="qty1" readonly="1" optional="show"/>
+					<field name="uom1" readonly="1" optional="show" groups="uom.group_uom"/>
 					<field name="qty2" readonly="1" optional="show"/>
-					<field name="uom_id2" readonly="1" optional="show" groups="uom.group_uom"/>
-					<field name="qty3" readonly="1" optional="show"/>
-					<field name="uom_id3" readonly="1" optional="show" groups="uom.group_uom"/>
+					<field name="uom2" readonly="1" optional="show" groups="uom.group_uom"/>
 				</field>
 			</field>
 		</record>
