@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models, fields
+from odoo.tools.misc import formatLang, get_lang
 
 class PurchaseOrderLine(models.Model):
 	_inherit = "purchase.order.line"
