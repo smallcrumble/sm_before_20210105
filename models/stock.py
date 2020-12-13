@@ -46,8 +46,8 @@ class Picking(models.Model):
 		precision_digits = self.env['decimal.precision'].precision_get('Product Unit of Measure')
 		for picking in self:
 			if all(float_is_zero(move_line.qty_done, precision_digits=precision_digits) and 
-				float_is_zero(move_line.qty_done1, precision_digits=precision_digits) and
-				float_is_zero(move_line.qty_done2, precision_digits=precision_digits) 
-				for move_line in picking.move_line_ids.filtered(lambda m: m.state not in ('done', 'cancel'))):
-					immediate_pickings |= picking
+			float_is_zero(move_line.qty_done1, precision_digits=precision_digits) and
+			float_is_zero(move_line.qty_done2, precision_digits=precision_digits) 
+			for move_line in picking.move_line_ids.filtered(lambda m: m.state not in ('done', 'cancel'))):
+				immediate_pickings |= picking
 		return immediate_pickings
