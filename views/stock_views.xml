@@ -15,5 +15,18 @@
 				</xpath>
 			</field>
 		</record>
+
+		<record id="view_move_line_tree_inherit" model="ir.ui.view">
+			<field name="name">stock.move.line.tree.inherit</field>
+			<field name="model">stock.move.line</field>
+			<field name="inherit_id" ref="stock.view_move_line_tree"/>
+			<field name="arch" type="xml">
+				<field name="qty_done" position="before"/>
+					<field name="qty_done1" string="Qty Done 1"/>
+					<field name="uom1" options="{'no_open': True, 'no_create': True}" string="UoM 1" groups="uom.group_uom"/>
+					<field name="qty_done2" string="Qty Done 2"/>
+					<field name="uom2" options="{'no_open': True, 'no_create': True}" string="UoM 2" groups="uom.group_uom"/>
+			</field>
+		</record>
 	</data>
 </odoo>
