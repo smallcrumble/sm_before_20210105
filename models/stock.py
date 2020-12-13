@@ -39,9 +39,9 @@ class StockMoveLine(models.Model):
 	'''
 
 class Picking(models.Model):
-    _inherit = "stock.picking"
+	_inherit = "stock.picking"
 
-    def _check_immediate(self):
+	def _check_immediate(self):
 		immediate_pickings = self.browse()
 		precision_digits = self.env['decimal.precision'].precision_get('Product Unit of Measure')
 		for picking in self:
