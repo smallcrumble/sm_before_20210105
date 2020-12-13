@@ -6,10 +6,10 @@
 			<field name="inherit_id" ref="product.product_template_form_view"/>
 			<field name="arch" type="xml">
 				<field name="uom_id" position="after">
-					<field name="uom1"/>
-					<field name="uom2"/>
 					<field name="qty1"/>
 					<field name="qty2"/>
+					<field name="uom1" options="{'no_open': True, 'no_create': True}" groups="uom.group_uom"/>
+					<field name="uom2" options="{'no_open': True, 'no_create': True}" groups="uom.group_uom"/>
 				</field>
 			</field>
 		</record>
