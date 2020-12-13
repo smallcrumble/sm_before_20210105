@@ -13,9 +13,9 @@
 				</xpath>
 				<xpath expr="//field[@name='product_qty']" position="before">	
 					<field name="qty1"/>
-					<field name="uom1" options="{'no_create': True}"/>
+					<field name="uom1" readonly="1" options="{'no_create': True}" force_save="1"/>
 					<field name="qty2"/>
-					<field name="uom2" options="{'no_create': True}"/>
+					<field name="uom2" readonly="1" options="{'no_create': True}" force_save="1"/>
 				</xpath>
 				<xpath expr="//field[@name='product_uom']" position="attributes">
 					<attribute name="attrs">{'readonly': 1}</attribute>
