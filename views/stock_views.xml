@@ -13,6 +13,9 @@
 					<field name="done2" attrs="{'readonly': [('is_quantity_done_editable', '=', False)]}"/>
 					<field name="uom2" attrs="{'readonly': [('state', '!=', 'draft'), ('additional', '=', False)]}" options="{'no_open': True, 'no_create': True}" groups="uom.group_uom"/>
 				</xpath>
+				<xpath expr="//field[@name='product_id']" position="attributes">
+					<attribute name="options">{'no_create': 1}</attribute>
+				</xpath>
 			</field>
 		</record>
 
