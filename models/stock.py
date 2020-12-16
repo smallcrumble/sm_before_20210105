@@ -84,11 +84,11 @@ class StockMove(models.Model):
 			for d in data:
 				rec[d['move_id'][0]] += [(d['product_uom_id'][0], d['qty_done'])]
 			for d in data1:
-				if uom1 and qty_done1 :
+				if d['uom1'] and d['qty_done1'] :
 					_logger.info('d 1 : %s', str(d))
 					rec1[d['move_id'][0]] += [(d['uom1'][0], d['qty_done1'])]
 			for d in data2:
-				if uom2 and qty_done2 :
+				if d['uom2'] and d['qty_done2'] :
 					_logger.info('d 2 : %s', str(d))
 					rec2[d['move_id'][0]] += [(d['uom2'][0], d['qty_done2'])]
 			
