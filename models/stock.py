@@ -8,10 +8,12 @@ class StockMove(models.Model):
 	_inherit = "stock.move"
 	
 	qty1 = fields.Float('Demand 1')
-	done1 = fields.Float('Done 1')
+	#done1 = fields.Float('Done 1')
+	done1 = fields.Float('Quantity Done', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 	uom1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.")
 	qty2 = fields.Float('Demand 2')
-	done2 = fields.Float('Done 2')
+	#done2 = fields.Float('Done 2')
+	done2 = fields.Float('Quantity Done', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 	uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
 
 	def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
@@ -24,6 +26,73 @@ class StockMove(models.Model):
 		res['uom2']=self.uom2.id
 		return res
 	
+	@api.depends('move_line_ids.qty_done', 'move_line_ids.qty_done1', 'move_line_ids.qty_done2', 'move_line_ids.product_uom_id', 'move_line_ids.uom1', 'move_line_ids.uom2', 'move_line_nosuggest_ids.qty_done', 'picking_type_id')
+	def _quantity_done_compute(self):
+		if not any(self._ids):
+			# onchange
+			for move in self:
+				quantity_done = 0
+				done1 = 0
+				done2 = 0
+				for move_line in move._get_move_lines():
+					quantity_done += move_line.product_uom_id._compute_quantity(
+						move_line.qty_done, move.product_uom, round=False)
+					done1 += move_line.uom1._compute_quantity(
+						move_line.qty_done1, move.uom1, round=False)
+					done2 += move_line.uom2._compute_quantity(
+						move_line.qty_done2, move.uom2, round=False)
+				move.quantity_done = quantity_done
+				move.done1 = done1
+				move.done2 = done2
+		else:
+			# compute
+			move_lines = self.env['stock.move.line']
+			for move in self:
+				move_lines |= move._get_move_lines()
+
+			data = self.env['stock.move.line'].read_group(
+				[('id', 'in', move_lines.ids)],
+				['move_id', 'product_uom_id', 'qty_done'], ['move_id', 'product_uom_id'],
+				lazy=False
+			)
+
+			data1 = self.env['stock.move.line'].read_group(
+				[('id', 'in', move_lines.ids)],
+				['move_id', 'uom1', 'qty_done1'], ['move_id', 'uom1'],
+				lazy=False
+			)
+
+			data2 = self.env['stock.move.line'].read_group(
+				[('id', 'in', move_lines.ids)],
+				['move_id', 'uom2', 'qty_done2'], ['move_id', 'uom2'],
+				lazy=False
+			)
+
+			rec = defaultdict(list)
+			rec1 = defaultdict(list)
+			rec2 = defaultdict(list)
+			for d in data:
+				rec[d['move_id'][0]] += [(d['product_uom_id'][0], d['qty_done'])]
+				rec1[d['move_id'][0]] += [(d['uom1'][0], d['qty_done1'])]
+				rec2[d['move_id'][0]] += [(d['uom2'][0], d['qty_done2'])]
+
+			for move in self:
+				uom = move.product_uom
+				uom1 = move.uom1
+				uom2 = move.uom2
+				move.quantity_done = sum(
+					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty, uom, round=False)
+					 for line_uom_id, qty in rec.get(move.ids[0] if move.ids else move.id, [])
+				)
+				move.done1 = sum(
+					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty, uom1, round=False)
+					 for line_uom_id, qty in rec1.get(move.ids[0] if move.ids else move.id, [])
+				)
+				move.done2 = sum(
+					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty, uom2, round=False)
+					 for line_uom_id, qty in rec2.get(move.ids[0] if move.ids else move.id, [])
+				)
+
 class StockMoveLine(models.Model):
 	_inherit = "stock.move.line"
 
