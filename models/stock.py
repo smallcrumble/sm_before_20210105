@@ -73,6 +73,7 @@ class StockMove(models.Model):
 				lazy=False
 			)
 
+			_logger.info('data   : %s', str(data))
 			_logger.info('data 1 : %s', str(data1))
 			_logger.info('data 2 : %s', str(data2))
 
