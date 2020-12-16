@@ -4,6 +4,7 @@ from odoo import models, fields
 from odoo.tools.float_utils import float_is_zero
 from odoo import SUPERUSER_ID, _, api, fields, models
 from odoo.exceptions import UserError
+from collections import defaultdict
 
 class StockMove(models.Model):
 	_inherit = "stock.move"
