@@ -12,11 +12,11 @@ class StockMove(models.Model):
 	qty1 = fields.Float('Demand 1')
 	#done1 = fields.Float('Done 1')
 	done1 = fields.Float('Quantity Done', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
-	uom1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.", domain="[('category_id', '=', product_uom_category_id)]")
+	uom1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.")
 	qty2 = fields.Float('Demand 2')
 	#done2 = fields.Float('Done 2')
 	done2 = fields.Float('Quantity Done', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
-	uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.", domain="[('category_id', '=', product_uom_category_id)]")
+	uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
 
 	def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
 		res = super(StockMove, self)._prepare_move_line_vals(quantity, reserved_quant)
@@ -76,9 +76,9 @@ class StockMove(models.Model):
 			for d in data:
 				rec[d['move_id'][0]] += [(d['product_uom_id'][0], d['qty_done'])]
 			for d in data1:
-				rec[d['move_id'][0]] += [(d['uom1'][0], d['qty_done1'])]
+				rec1[d['move_id'][0]] += [(d['uom1'][0], d['qty_done1'])]
 			for d in data2:
-				rec[d['move_id'][0]] += [(d['uom2'][0], d['qty_done2'])]
+				rec2[d['move_id'][0]] += [(d['uom2'][0], d['qty_done2'])]
 
 			for move in self:
 				uom = move.product_uom
@@ -90,11 +90,11 @@ class StockMove(models.Model):
 				)
 				move.done1 = sum(
 					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty, uom1, round=False)
-					 for line_uom_id, qty in rec.get(move.ids[0] if move.ids else move.id, [])
+					 for line_uom_id, qty in rec1.get(move.ids[0] if move.ids else move.id, [])
 				)
 				move.done2 = sum(
 					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty, uom2, round=False)
-					 for line_uom_id, qty in rec.get(move.ids[0] if move.ids else move.id, [])
+					 for line_uom_id, qty in rec2.get(move.ids[0] if move.ids else move.id, [])
 				)
 
 class StockMoveLine(models.Model):
@@ -102,10 +102,10 @@ class StockMoveLine(models.Model):
 
 	qty1 = fields.Float('Demand 1')
 	qty_done1 = fields.Float('Done 1') #done1
-	uom1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.", domain="[('category_id', '=', product_uom_category_id)]")
+	uom1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.")
 	qty2 = fields.Float('Demand 2')
 	qty_done2 = fields.Float('Done 2') #done2
-	uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.", domain="[('category_id', '=', product_uom_category_id)]")
+	uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
 
 	'''def create_move(move_line):
 		res = super(StockMoveLine, self).create_move(move_line)
