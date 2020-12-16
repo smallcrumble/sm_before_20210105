@@ -5,6 +5,9 @@ from odoo.tools.float_utils import float_is_zero
 from odoo import SUPERUSER_ID, _, api, fields, models
 from odoo.exceptions import UserError
 from collections import defaultdict
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class StockMove(models.Model):
 	_inherit = "stock.move"
@@ -70,16 +73,20 @@ class StockMove(models.Model):
 				lazy=False
 			)
 
+			_logger.info('data 1 : %s', str(data1))
+			_logger.info('data 2 : %s', str(data2))
+
+
 			rec = defaultdict(list)
 			rec1 = defaultdict(list)
 			rec2 = defaultdict(list)
 			for d in data:
 				rec[d['move_id'][0]] += [(d['product_uom_id'][0], d['qty_done'])]
-			for d in data1:
+			'''for d in data1:
 				rec1[d['move_id'][0]] += [(d['uom1'][0], d['qty_done1'])]
 			for d in data2:
 				rec2[d['move_id'][0]] += [(d['uom2'][0], d['qty_done2'])]
-
+			'''
 			for move in self:
 				uom = move.product_uom
 				uom1 = move.uom1
