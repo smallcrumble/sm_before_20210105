@@ -2,6 +2,7 @@
 
 from odoo import models, fields
 from odoo.tools.float_utils import float_is_zero
+from odoo import SUPERUSER_ID, _, api, fields, models
 from odoo.exceptions import UserError
 
 class StockMove(models.Model):
@@ -25,7 +26,7 @@ class StockMove(models.Model):
 		res['qty_done2']=self.done2
 		res['uom2']=self.uom2.id
 		return res
-	
+
 	@api.depends('move_line_ids.qty_done', 'move_line_ids.qty_done1', 'move_line_ids.qty_done2', 'move_line_ids.product_uom_id', 'move_line_ids.uom1', 'move_line_ids.uom2', 'move_line_nosuggest_ids.qty_done', 'picking_type_id')
 	def _quantity_done_compute(self):
 		if not any(self._ids):
