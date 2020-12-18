@@ -13,12 +13,10 @@ class StockMove(models.Model):
 	_inherit = "stock.move"
 	
 	qty1 = fields.Float('Demand 1')
-	#done1 = fields.Float('Done 1')
-	done1 = fields.Float('Quantity Done', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
+	done1 = fields.Float('Done 1', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 	uom1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.")
 	qty2 = fields.Float('Demand 2')
-	#done2 = fields.Float('Done 2')
-	done2 = fields.Float('Quantity Done', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
+	done2 = fields.Float('Done 2', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 	uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
 
 	def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
@@ -73,10 +71,10 @@ class StockMove(models.Model):
 				lazy=False
 			)
 
-			_logger.info('data   : %s', str(data))
+			'''_logger.info('data   : %s', str(data))
 			_logger.info('data 1 : %s', str(data1))
 			_logger.info('data 2 : %s', str(data2))
-
+			'''
 
 			rec = defaultdict(list)
 			rec1 = defaultdict(list)
@@ -85,11 +83,11 @@ class StockMove(models.Model):
 				rec[d['move_id'][0]] += [(d['product_uom_id'][0], d['qty_done'])]
 			for d in data1:
 				if d['uom1'] and d['qty_done1'] :
-					_logger.info('d 1 : %s', str(d))
+					#_logger.info('d 1 : %s', str(d))
 					rec1[d['move_id'][0]] += [(d['uom1'][0], d['qty_done1'])]
 			for d in data2:
 				if d['uom2'] and d['qty_done2'] :
-					_logger.info('d 2 : %s', str(d))
+					#_logger.info('d 2 : %s', str(d))
 					rec2[d['move_id'][0]] += [(d['uom2'][0], d['qty_done2'])]
 			
 			for move in self:
@@ -127,6 +125,8 @@ class StockMoveLine(models.Model):
 		#res['uom2']=self.uom2.id
 		return res
 	'''
+
+	
 
 class StockImmediateTransfer(models.TransientModel):
 	_inherit = 'stock.immediate.transfer'
