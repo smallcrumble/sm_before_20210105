@@ -178,9 +178,9 @@ class Picking(models.Model):
 '''
 
 class StockBackorderConfirmation(models.TransientModel):
-    _inherit = 'stock.backorder.confirmation'
+	_inherit = 'stock.backorder.confirmation'
 
-    def process(self):
+	def process(self):
 		pickings_to_do = self.env['stock.picking']
 		pickings_not_to_do = self.env['stock.picking']
 		for line in self.backorder_confirmation_line_ids:
@@ -199,7 +199,7 @@ class StockBackorderConfirmation(models.TransientModel):
 			pick_id._log_less_quantities_than_expected(moves_to_log)
 
 		pickings_to_validate = self.env.context.get('button_validate_picking_ids')
-		_logger.info('data 1 : %s', str(pickings_to_validate))
+		_logger.info('pickings_to_validate : %s', str(pickings_to_validate))
 		if pickings_to_validate:
 			pickings_to_validate = self.env['stock.picking'].browse(pickings_to_validate).with_context(skip_backorder=True)
 			if pickings_not_to_do:
