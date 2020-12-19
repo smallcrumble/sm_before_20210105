@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models, fields
-from odoo.tools.float_utils import float_is_zero
+from odoo.tools.float_utils import float_compare, float_is_zero, float_round
 from odoo import SUPERUSER_ID, _, api, fields, models
 from odoo.exceptions import UserError
 from collections import defaultdict
@@ -151,6 +151,7 @@ class StockMoveLine(models.Model):
 	'''
 
 	def write(self, vals):
+		_logger.info('**MASUK WRITE**')
 		if self.env.context.get('bypass_reservation_update'):
 			return super(StockMoveLine, self).write(vals)
 
