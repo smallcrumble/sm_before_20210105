@@ -445,11 +445,10 @@ class StockImmediateTransfer(models.TransientModel):
 			return pickings_to_validate.with_context(skip_immediate=True).button_validate()
 		return True
 
-#done qty = 0 odoo otomatis pangisiin done qty = demand
-class Picking(models.Model):
-	_inherit = "stock.picking"
-
-	def write(self, vals):
+class PickingType(models.Model):
+    _name = "stock.picking.type"
+    
+    def write(self, vals):
 		_logger.info('--WRITE PICKING--')
 		if 'company_id' in vals:
 			for picking_type in self:
@@ -471,7 +470,10 @@ class Picking(models.Model):
 					})
 		return super(PickingType, self).write(vals)
 
-	'''def _check_immediate(self):
+'''done qty = 0 odoo otomatis pangisiin done qty = demand
+class Picking(models.Model):
+	_inherit = "stock.picking"
+	def _check_immediate(self):
 		immediate_pickings = self.browse()
 		precision_digits = self.env['decimal.precision'].precision_get('Product Unit of Measure')
 		for picking in self:
@@ -481,7 +483,7 @@ class Picking(models.Model):
 			for move_line in picking.move_line_ids.filtered(lambda m: m.state not in ('done', 'cancel'))):
 			 	immediate_pickings |= picking
 		return immediate_pickings
-	'''
+'''	
 
 class StockBackorderConfirmation(models.TransientModel):
 	_inherit = 'stock.backorder.confirmation'
