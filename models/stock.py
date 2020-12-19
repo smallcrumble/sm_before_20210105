@@ -149,7 +149,7 @@ class StockMoveLine(models.Model):
 		#res['uom2']=self.uom2.id
 		return res
 	'''
-
+'''
 	def write(self, vals):
 		_logger.info('**MASUK WRITE**')
 		if self.env.context.get('bypass_reservation_update'):
@@ -410,7 +410,7 @@ class StockMoveLine(models.Model):
 			'qty2': 0.00,
 			'date': fields.Datetime.now(),
 		})
-		
+'''		
 
 class StockImmediateTransfer(models.TransientModel):
 	_inherit = 'stock.immediate.transfer'
@@ -478,6 +478,7 @@ class Picking(models.Model):
 			self._autoconfirm_picking()
 
 		return res
+		
 '''	def _check_immediate(self):
 		immediate_pickings = self.browse()
 		precision_digits = self.env['decimal.precision'].precision_get('Product Unit of Measure')
