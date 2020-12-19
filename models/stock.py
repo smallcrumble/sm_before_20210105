@@ -196,7 +196,7 @@ class StockBackorderConfirmation(models.TransientModel):
 								 move.quantity_done,
 								 precision_rounding=move.product_uom.rounding) > 0:
 					moves_to_log[move] = (move.quantity_done, move.product_uom_qty)
-				_logger.info('moves_to_log : %s', str(moves_to_log))
+				_logger.info('moves_to_log : %s', str(moves_to_log[move]))
 			pick_id._log_less_quantities_than_expected(moves_to_log)
 
 		pickings_to_validate = self.env.context.get('button_validate_picking_ids')
