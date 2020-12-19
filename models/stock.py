@@ -445,35 +445,40 @@ class StockImmediateTransfer(models.TransientModel):
 			return pickings_to_validate.with_context(skip_immediate=True).button_validate()
 		return True
 
-class PickingType(models.Model):
-	_inherit = "stock.picking.type"
-	
-	def write(self, vals):
-		_logger.info('--WRITE PICKING--')
-		if 'company_id' in vals:
-			for picking_type in self:
-				if picking_type.company_id.id != vals['company_id']:
-					raise UserError(_("Changing the company of this record is forbidden at this point, you should rather archive it and create a new one."))
-		if 'sequence_code' in vals:
-			for picking_type in self:
-				if picking_type.warehouse_id:
-					picking_type.sequence_id.write({
-						'name': picking_type.warehouse_id.name + ' ' + _('Sequence') + ' ' + vals['sequence_code'],
-						'prefix': picking_type.warehouse_id.code + '/' + vals['sequence_code'] + '/', 'padding': 5,
-						'company_id': picking_type.warehouse_id.company_id.id,
-					})
-				else:
-					picking_type.sequence_id.write({
-						'name': _('Sequence') + ' ' + vals['sequence_code'],
-						'prefix': vals['sequence_code'], 'padding': 5,
-						'company_id': picking_type.env.company.id,
-					})
-		return super(PickingType, self).write(vals)
 
-'''done qty = 0 odoo otomatis pangisiin done qty = demand
+
+#done qty = 0 odoo otomatis pangisiin done qty = demand
 class Picking(models.Model):
 	_inherit = "stock.picking"
-	def _check_immediate(self):
+
+	def write(self, vals):
+		_logger.info('--MASUK WRITE PICKING--')
+		if vals.get('picking_type_id') and self.state != 'draft':
+			raise UserError(_("Changing the operation type of this record is forbidden at this point."))
+		# set partner as a follower and unfollow old partner
+		if vals.get('partner_id'):
+			for picking in self:
+				if picking.location_id.usage == 'supplier' or picking.location_dest_id.usage == 'customer':
+					if picking.partner_id:
+						picking.message_unsubscribe(picking.partner_id.ids)
+					picking.message_subscribe([vals.get('partner_id')])
+		res = super(Picking, self).write(vals)
+		if vals.get('signature'):
+			for picking in self:
+				picking._attach_sign()
+		# Change locations of moves if those of the picking change
+		after_vals = {}
+		if vals.get('location_id'):
+			after_vals['location_id'] = vals['location_id']
+		if vals.get('location_dest_id'):
+			after_vals['location_dest_id'] = vals['location_dest_id']
+		if after_vals:
+			self.mapped('move_lines').filtered(lambda move: not move.scrapped).write(after_vals)
+		if vals.get('move_lines'):
+			self._autoconfirm_picking()
+
+		return res
+'''	def _check_immediate(self):
 		immediate_pickings = self.browse()
 		precision_digits = self.env['decimal.precision'].precision_get('Product Unit of Measure')
 		for picking in self:
