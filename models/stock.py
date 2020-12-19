@@ -446,9 +446,9 @@ class StockImmediateTransfer(models.TransientModel):
 		return True
 
 class PickingType(models.Model):
-    _name = "stock.picking.type"
-    
-    def write(self, vals):
+	_name = "stock.picking.type"
+	
+	def write(self, vals):
 		_logger.info('--WRITE PICKING--')
 		if 'company_id' in vals:
 			for picking_type in self:
