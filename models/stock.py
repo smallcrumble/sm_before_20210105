@@ -273,6 +273,29 @@ class StockMoveLine(models.Model):
 					ml._log_message(ml.picking_id, ml, 'stock.track_move_template', vals)
 
 		res = super(StockMoveLine, self).write(vals)
+		# Update scrap object linked to move_lines to the new quantity.
+		if 'qty_done' in vals:
+			for move in self.mapped('move_id'):
+				if move.scrapped:
+					move.scrap_ids.write({'scrap_qty': move.quantity_done})
+
+		# As stock_account values according to a move's `product_uom_qty`, we consider that any
+		# done stock move should have its `quantity_done` equals to its `product_uom_qty`, and
+		# this is what move's `action_done` will do. So, we replicate the behavior here.
+		if updates or 'qty_done' in vals:
+			moves = self.filtered(lambda ml: ml.move_id.state == 'done').mapped('move_id')
+			moves |= self.filtered(lambda ml: ml.move_id.state not in ('done', 'cancel') and ml.move_id.picking_id.immediate_transfer and not ml.product_uom_qty).mapped('move_id')
+			for move in moves:
+				move.product_uom_qty = move.quantity_done
+				move.qty1 = move.done1
+				move.qty2 = move.done2
+			next_moves._do_unreserve()
+			next_moves._action_assign()
+
+		if moves_to_recompute_state:
+			moves_to_recompute_state._recompute_state()
+
+		return res
 
 	def _action_done(self):
 		""" This method is called during a move's `action_done`. It'll actually move a quant from
@@ -386,29 +409,7 @@ class StockMoveLine(models.Model):
 			'qty2': 0.00,
 			'date': fields.Datetime.now(),
 		})
-		# Update scrap object linked to move_lines to the new quantity.
-		if 'qty_done' in vals:
-			for move in self.mapped('move_id'):
-				if move.scrapped:
-					move.scrap_ids.write({'scrap_qty': move.quantity_done})
-
-		# As stock_account values according to a move's `product_uom_qty`, we consider that any
-		# done stock move should have its `quantity_done` equals to its `product_uom_qty`, and
-		# this is what move's `action_done` will do. So, we replicate the behavior here.
-		if updates or 'qty_done' in vals:
-			moves = self.filtered(lambda ml: ml.move_id.state == 'done').mapped('move_id')
-			moves |= self.filtered(lambda ml: ml.move_id.state not in ('done', 'cancel') and ml.move_id.picking_id.immediate_transfer and not ml.product_uom_qty).mapped('move_id')
-			for move in moves:
-				move.product_uom_qty = move.quantity_done
-				move.qty1 = move.done1
-				move.qty2 = move.done2
-			next_moves._do_unreserve()
-			next_moves._action_assign()
-
-		if moves_to_recompute_state:
-			moves_to_recompute_state._recompute_state()
-
-		return res
+		
 
 class StockImmediateTransfer(models.TransientModel):
 	_inherit = 'stock.immediate.transfer'
