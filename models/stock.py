@@ -446,7 +446,7 @@ class StockImmediateTransfer(models.TransientModel):
 		return True
 
 class PickingType(models.Model):
-	_name = "stock.picking.type"
+	_inherit = "stock.picking.type"
 	
 	def write(self, vals):
 		_logger.info('--WRITE PICKING--')
