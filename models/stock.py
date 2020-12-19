@@ -122,6 +122,7 @@ class StockMove(models.Model):
 				move_lines[0].qty_done = quantity_done
 				move_lines[0].qty_done1 = quantity_done1
 				move_lines[0].qty_done2 = quantity_done2
+				_logger.info('_quantity_done_set : %s', str(quantity_done))
 			else:
 				# Bypass the error if we're trying to write the same value.
 				ml_quantity_done = 0
@@ -229,6 +230,7 @@ class StockMoveLine(models.Model):
 			if not updates:  # we can skip those where qty_done is already good up to UoM rounding
 				mls = mls.filtered(lambda ml: not float_is_zero(ml.qty_done - vals['qty_done'], precision_rounding=ml.product_uom_id.rounding))
 			for ml in mls:
+				_logger.info('MASUK WRITE UNDO THE ORI MOVE LINE')
 				# undo the original move line
 				qty_done_orig = ml.move_id.product_uom._compute_quantity(ml.qty_done, ml.move_id.product_id.uom_id, rounding_method='HALF-UP')
 				in_date = Quant._update_available_quantity(ml.product_id, ml.location_dest_id, -qty_done_orig, lot_id=ml.lot_id,
@@ -377,6 +379,7 @@ class StockMoveLine(models.Model):
 				Quant._update_available_quantity(ml.product_id, ml.location_dest_id, quantity, lot_id=ml.lot_id, package_id=ml.result_package_id, owner_id=ml.owner_id, in_date=in_date)
 			done_ml |= ml
 		# Reset the reserved quantity as we just moved it to the destination location.
+		_logger.info('QTY JADI 0')
 		(self - ml_to_delete).with_context(bypass_reservation_update=True).write({
 			'product_uom_qty': 0.00,
 			'qty1': 0.00,
