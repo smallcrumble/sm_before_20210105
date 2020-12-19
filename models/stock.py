@@ -445,11 +445,33 @@ class StockImmediateTransfer(models.TransientModel):
 			return pickings_to_validate.with_context(skip_immediate=True).button_validate()
 		return True
 
-'''done qty = 0 odoo otomatis pangisiin done qty = demand
+#done qty = 0 odoo otomatis pangisiin done qty = demand
 class Picking(models.Model):
 	_inherit = "stock.picking"
 
-	def _check_immediate(self):
+	def write(self, vals):
+		_logger.info('--WRITE PICKING--')
+		if 'company_id' in vals:
+			for picking_type in self:
+				if picking_type.company_id.id != vals['company_id']:
+					raise UserError(_("Changing the company of this record is forbidden at this point, you should rather archive it and create a new one."))
+		if 'sequence_code' in vals:
+			for picking_type in self:
+				if picking_type.warehouse_id:
+					picking_type.sequence_id.write({
+						'name': picking_type.warehouse_id.name + ' ' + _('Sequence') + ' ' + vals['sequence_code'],
+						'prefix': picking_type.warehouse_id.code + '/' + vals['sequence_code'] + '/', 'padding': 5,
+						'company_id': picking_type.warehouse_id.company_id.id,
+					})
+				else:
+					picking_type.sequence_id.write({
+						'name': _('Sequence') + ' ' + vals['sequence_code'],
+						'prefix': vals['sequence_code'], 'padding': 5,
+						'company_id': picking_type.env.company.id,
+					})
+		return super(PickingType, self).write(vals)
+
+	'''def _check_immediate(self):
 		immediate_pickings = self.browse()
 		precision_digits = self.env['decimal.precision'].precision_get('Product Unit of Measure')
 		for picking in self:
@@ -459,7 +481,7 @@ class Picking(models.Model):
 			for move_line in picking.move_line_ids.filtered(lambda m: m.state not in ('done', 'cancel'))):
 			 	immediate_pickings |= picking
 		return immediate_pickings
-'''
+	'''
 
 class StockBackorderConfirmation(models.TransientModel):
 	_inherit = 'stock.backorder.confirmation'
