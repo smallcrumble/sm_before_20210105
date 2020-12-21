@@ -523,7 +523,7 @@ class Picking(models.Model):
 
 		return res
 		
-		def button_validate(self):
+	def button_validate(self):
 		# Clean-up the context key at validation to avoid forcing the creation of immediate
 		# transfers.
 		ctx = dict(self.env.context)
