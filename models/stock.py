@@ -595,7 +595,7 @@ class Picking(models.Model):
 		pickings_to_backorder.with_context(cancel_backorder=False)._action_done()
 		return True
 
-		def _autoconfirm_picking(self):
+	def _autoconfirm_picking(self):
 		""" Automatically run `action_confirm` on `self` if the picking is an immediate transfer or
 		if the picking is a planned transfer and one of its move was added after the initial
 		call to `action_confirm`. Note that `action_confirm` will only work on draft moves.
