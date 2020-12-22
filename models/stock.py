@@ -195,7 +195,7 @@ class StockMoveLine(models.Model):
 				create_move(move_line)
 
 		for ml, vals in zip(mls, vals_list):
-			_logger.info('*ml.move_id.product_uom_qty : %s*', str(ml.move_id.product_uom_qty)
+			_logger.info('*ml.move_id.product_uom_qty : %s*', str(ml.move_id.product_uom_qty))
 			if ml.move_id and \
 					ml.move_id.picking_id and \
 					ml.move_id.picking_id.immediate_transfer and \
