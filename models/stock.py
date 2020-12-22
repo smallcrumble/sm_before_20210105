@@ -167,11 +167,11 @@ class StockMove(models.Model):
 class StockMoveLine(models.Model):
 	_inherit = "stock.move.line"
 
-	qty1 = fields.Float('Demand 1')
-	qty_done1 = fields.Float('Done 1') #done1
+	qty1 = fields.Float('Demand 1', default=0.0)
+	qty_done1 = fields.Float('Done 1', default=0.0) #done1
 	uom1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.")
-	qty2 = fields.Float('Demand 2')
-	qty_done2 = fields.Float('Done 2') #done2
+	qty2 = fields.Float('Demand 2', default=0.0)
+	qty_done2 = fields.Float('Done 2', default=0.0) #done2
 	uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
 
 	'''def create_move(move_line):
