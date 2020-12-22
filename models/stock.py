@@ -525,6 +525,36 @@ class StockMoveLine(models.Model):
 		})
 '''		
 
+class StockBackorderConfirmation(models.TransientModel):
+	_inherit = 'stock.backorder.confirmation'
+
+	 def process(self):
+		pickings_to_do = self.env['stock.picking']
+		pickings_not_to_do = self.env['stock.picking']
+		for line in self.backorder_confirmation_line_ids:
+			if line.to_backorder is True:
+				pickings_to_do |= line.picking_id
+			else:
+				pickings_not_to_do |= line.picking_id
+
+		for pick_id in pickings_not_to_do:
+			moves_to_log = {}
+			for move in pick_id.move_lines:
+				if float_compare(move.product_uom_qty,
+								 move.quantity_done,
+								 precision_rounding=move.product_uom.rounding) > 0:
+					moves_to_log[move] = (move.quantity_done, move.product_uom_qty)
+			_logger.info('moves_to_log[%i] : %s',move,moves_to_log[move])
+			pick_id._log_less_quantities_than_expected(moves_to_log)
+
+		pickings_to_validate = self.env.context.get('button_validate_picking_ids')
+		if pickings_to_validate:
+			pickings_to_validate = self.env['stock.picking'].browse(pickings_to_validate).with_context(skip_backorder=True)
+			if pickings_not_to_do:
+				pickings_to_validate = pickings_to_validate.with_context(picking_ids_not_to_backorder=pickings_not_to_do.ids)
+			return pickings_to_validate.button_validate()
+		return True
+
 class StockImmediateTransfer(models.TransientModel):
 	_inherit = 'stock.immediate.transfer'
 
@@ -648,6 +678,10 @@ class Picking(models.Model):
 		pickings_without_quantities = self.browse()
 		pickings_without_lots = self.browse()
 		products_without_lots = self.env['product.product']
+		_logger.info('=pickings_without_moves : %s=', str(pickings_without_moves))
+		_logger.info('=pickings_without_quantities : %s=', str(pickings_without_quantities))
+		_logger.info('=pickings_without_lots : %s=', str(pickings_without_lots))
+		_logger.info('=products_without_lots : %s=', str(products_without_lots))
 		for picking in self:
 			if not picking.move_lines and not picking.move_line_ids:
 				pickings_without_moves |= picking
