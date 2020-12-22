@@ -713,6 +713,8 @@ class Picking(models.Model):
 		else:
 			pickings_not_to_backorder = self.env['stock.picking']
 			pickings_to_backorder = self
+		_logger.info('=pickings_not_to_backorder : %s=', str(pickings_not_to_backorder))
+		_logger.info('=pickings_to_backorder : %s=', str(pickings_to_backorder))	
 		pickings_not_to_backorder.with_context(cancel_backorder=True)._action_done()
 		pickings_to_backorder.with_context(cancel_backorder=False)._action_done()
 		return True
