@@ -755,6 +755,7 @@ class StockBackorderConfirmation(models.TransientModel):
 	def process(self):
 		pickings_to_do = self.env['stock.picking']
 		pickings_not_to_do = self.env['stock.picking']
+		_logger.info('~ PROCESS bACKoRDERcONFIRMATION ~')
 		for line in self.backorder_confirmation_line_ids:
 			if line.to_backorder is True:
 				pickings_to_do |= line.picking_id
