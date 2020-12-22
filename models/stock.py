@@ -19,7 +19,7 @@ class StockMove(models.Model):
 	done2 = fields.Float('Done 2', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 	uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
 
-	def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
+'''	def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
 		res = super(StockMove, self)._prepare_move_line_vals(quantity, reserved_quant)
 		res['qty1']=self.qty1
 		#res['qty_done1']=self.done1
@@ -28,6 +28,49 @@ class StockMove(models.Model):
 		#res['qty_done2']=self.done2
 		res['uom2']=self.uom2.id
 		return res
+'''
+	def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
+		self.ensure_one()
+		# apply putaway
+		location_dest_id = self.location_dest_id._get_putaway_strategy(self.product_id).id or self.location_dest_id.id
+		vals = {
+			'move_id': self.id,
+			'product_id': self.product_id.id,
+			'product_uom_id': self.product_uom.id,
+			'location_id': self.location_id.id,
+			'location_dest_id': location_dest_id,
+			'picking_id': self.picking_id.id,
+			'company_id': self.company_id.id,
+			#'qty1': self.qty1,
+			'uom1': self.uom1.id,
+			#'qty2': self.qty2,
+			'uom2': self.uom2.id,
+		}
+		if quantity:
+			rounding = self.env['decimal.precision'].precision_get('Product Unit of Measure')
+			uom_quantity = self.product_id.uom_id._compute_quantity(quantity, self.product_uom, rounding_method='HALF-UP')
+			uom_quantity = float_round(uom_quantity, precision_digits=rounding)
+			uom_quantity_back_to_product_uom = self.product_uom._compute_quantity(uom_quantity, self.product_id.uom_id, rounding_method='HALF-UP')
+			_logger.info('qty1   : %s', str(self.qty1))
+			_logger.info('qty2   : %s', str(self.qty2))
+			if float_compare(quantity, uom_quantity_back_to_product_uom, precision_digits=rounding) == 0:
+				vals = dict(vals, product_uom_qty=uom_quantity)
+			else:
+				vals = dict(vals, product_uom_qty=quantity, product_uom_id=self.product_id.uom_id.id)
+			vals = dict(vals,qty1=self.qty1)
+			vals = dict(vals,qty2=self.qty2)
+			_logger.info('vals  : %s', str(vals))
+			
+		if reserved_quant:
+			vals = dict(
+				vals,
+				location_id=reserved_quant.location_id.id,
+				lot_id=reserved_quant.lot_id.id or False,
+				package_id=reserved_quant.package_id.id or False,
+				owner_id =reserved_quant.owner_id.id or False,
+			)
+		_logger.info('vals sblm return : %s', str(vals))
+		return vals
 
 	@api.depends('move_line_ids.qty_done', 'move_line_ids.qty_done1', 'move_line_ids.qty_done2', 'move_line_ids.product_uom_id', 'move_line_ids.uom1', 'move_line_ids.uom2', 'move_line_nosuggest_ids.qty_done', 'picking_type_id')
 	def _quantity_done_compute(self):
