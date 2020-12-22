@@ -18,17 +18,7 @@ class StockMove(models.Model):
 	qty2 = fields.Float('Demand 2')
 	done2 = fields.Float('Done 2', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 	uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
-'''
-	def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
-		res = super(StockMove, self)._prepare_move_line_vals(quantity, reserved_quant)
-		res['qty1']=self.qty1
-		#res['qty_done1']=self.done1
-		res['uom1']=self.uom1.id
-		res['qty2']=self.qty2
-		#res['qty_done2']=self.done2
-		res['uom2']=self.uom2.id
-		return res
-'''
+
 	def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
 		self.ensure_one()
 		# apply putaway
