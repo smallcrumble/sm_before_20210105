@@ -202,6 +202,7 @@ class StockMoveLine(models.Model):
 					ml.move_id.state != 'done' and \
 					'qty_done' in vals:
 				ml.move_id.product_uom_qty = ml.move_id.quantity_done
+			_logger.info('*ml.move_id.quantity_done : %s*', str(ml.move_id.quantity_done))
 			if ml.state == 'done':
 				if 'qty_done' in vals:
 					ml.move_id.product_uom_qty = ml.move_id.quantity_done
