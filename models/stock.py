@@ -650,10 +650,10 @@ class Picking(models.Model):
 		pickings_without_quantities = self.browse()
 		pickings_without_lots = self.browse()
 		products_without_lots = self.env['product.product']
-		_logger.info('=pickings_without_moves : %s=', str(pickings_without_moves))
-		_logger.info('=pickings_without_quantities : %s=', str(pickings_without_quantities))
-		_logger.info('=pickings_without_lots : %s=', str(pickings_without_lots))
-		_logger.info('=products_without_lots : %s=', str(products_without_lots))
+		#_logger.info('=pickings_without_moves : %s=', str(pickings_without_moves))
+		#_logger.info('=pickings_without_quantities : %s=', str(pickings_without_quantities))
+		#_logger.info('=pickings_without_lots : %s=', str(pickings_without_lots))
+		#_logger.info('=products_without_lots : %s=', str(products_without_lots))
 		for picking in self:
 			if not picking.move_lines and not picking.move_line_ids:
 				pickings_without_moves |= picking
@@ -661,8 +661,11 @@ class Picking(models.Model):
 			picking.message_subscribe([self.env.user.partner_id.id])
 			picking_type = picking.picking_type_id
 			precision_digits = self.env['decimal.precision'].precision_get('Product Unit of Measure')
+			_logger.info('=precision_digits : %s=', str(precision_digits))
 			no_quantities_done = all(float_is_zero(move_line.qty_done, precision_digits=precision_digits) for move_line in picking.move_line_ids.filtered(lambda m: m.state not in ('done', 'cancel')))
+			_logger.info('=no_quantities_done : %s=', str(no_quantities_done))
 			no_reserved_quantities = all(float_is_zero(move_line.product_qty, precision_rounding=move_line.product_uom_id.rounding) for move_line in picking.move_line_ids)
+			_logger.info('=no_reserved_quantities : %s=', str(no_reserved_quantities))
 			if no_reserved_quantities and no_quantities_done:
 				pickings_without_quantities |= picking
 
