@@ -196,13 +196,19 @@ class StockMoveLine(models.Model):
 
 		for ml, vals in zip(mls, vals_list):
 			_logger.info('*ml.move_id.product_uom_qty : %s*', str(ml.move_id.product_uom_qty))
+			_logger.info('*ml.move_id.qty1 : %s*', str(ml.move_id.qty1))
+			_logger.info('*ml.move_id.qty2 : %s*', str(ml.move_id.qty2))
 			if ml.move_id and \
 					ml.move_id.picking_id and \
 					ml.move_id.picking_id.immediate_transfer and \
 					ml.move_id.state != 'done' and \
 					'qty_done' in vals:
 				ml.move_id.product_uom_qty = ml.move_id.quantity_done
+				ml.move_id.qty1 = ml.move_id.qty_done1
+				ml.move_id.qty2 = ml.move_id.qty_done2
 			_logger.info('*ml.move_id.quantity_done : %s*', str(ml.move_id.quantity_done))
+			_logger.info('*ml.move_id.qty_done1 : %s*', str(ml.move_id.qty_done1))
+			_logger.info('*ml.move_id.qty_done2 : %s*', str(ml.move_id.qty_done2))
 			if ml.state == 'done':
 				if 'qty_done' in vals:
 					ml.move_id.product_uom_qty = ml.move_id.quantity_done
