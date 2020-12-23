@@ -164,6 +164,46 @@ class StockMove(models.Model):
 				if float_compare(quantity_done, ml_quantity_done, precision_rounding=move.product_uom.rounding) != 0:
 					raise UserError(_("Cannot set the done quantity from this stock move, work directly with the move lines."))
 
+	@api.model
+	def default_get(self, fields_list):
+		# We override the default_get to make stock moves created after the picking was confirmed
+		# directly as available in immediate transfer mode. This allows to create extra move lines
+		# in the fp view. In planned transfer, the stock move are marked as `additional` and will be
+		# auto-confirmed.
+		defaults = super(StockMove, self).default_get(fields_list)
+		if self.env.context.get('default_picking_id'):
+			picking_id = self.env['stock.picking'].browse(self.env.context['default_picking_id'])
+			if picking_id.state == 'done':
+				defaults['state'] = 'done'
+				defaults['product_uom_qty'] = 0.0
+				defaults['qty1'] = 0.0
+				defaults['qty2'] = 0.0
+				defaults['additional'] = True
+			elif picking_id.state not in ['cancel', 'draft', 'done']:
+				if picking_id.immediate_transfer:
+					defaults['state'] = 'assigned'
+				defaults['product_uom_qty'] = 0.0
+				defaults['qty1'] = 0.0
+				defaults['qty2'] = 0.0
+				defaults['additional'] = True  # to trigger `_autoconfirm_picking`
+		return defaults
+
+	def _merge_moves_fields(self):
+		""" This method will return a dict of stock move’s values that represent the values of all moves in `self` merged. """
+		state = self._get_relevant_state_among_moves()
+		origin = '/'.join(set(self.filtered(lambda m: m.origin).mapped('origin')))
+		return {
+			'product_uom_qty': sum(self.mapped('product_uom_qty')),
+			'qty1': sum(self.mapped('qty1')),
+			'qty2': sum(self.mapped('qty2')),
+			'date': min(self.mapped('date')) if self.mapped('picking_id').move_type == 'direct' else max(self.mapped('date')),
+			'move_dest_ids': [(4, m.id) for m in self.mapped('move_dest_ids')],
+			'move_orig_ids': [(4, m.id) for m in self.mapped('move_orig_ids')],
+			'state': state,
+			'origin': origin,
+		}
+
+
 class StockMoveLine(models.Model):
 	_inherit = "stock.move.line"
 
