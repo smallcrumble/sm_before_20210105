@@ -6,12 +6,12 @@
 			<field name="inherit_id" ref="stock.view_picking_form"/>
 			<field name="arch" type="xml">
 				<xpath expr="//field[@name='product_uom_qty']" position="before">
-					<field name="qty1" attrs="{'readonly': [('is_initial_demand_editable', '=', False)]}"/>
-					<field name="done1" attrs="{'readonly': [('is_quantity_done_editable', '=', False)]}"/>
-					<field name="uom1" attrs="{'readonly': [('state', '!=', 'draft'), ('additional', '=', False)]}" options="{'no_open': True, 'no_create': True}" groups="uom.group_uom"/>
-					<field name="qty2" attrs="{'readonly': [('is_initial_demand_editable', '=', False)]}"/>
-					<field name="done2" attrs="{'readonly': [('is_quantity_done_editable', '=', False)]}"/>
-					<field name="uom2" attrs="{'readonly': [('state', '!=', 'draft'), ('additional', '=', False)]}" options="{'no_open': True, 'no_create': True}" groups="uom.group_uom"/>
+					<field name="product_uom_qty1" attrs="{'readonly': [('is_initial_demand_editable', '=', False)]}"/>
+					<field name="quantity_done1" attrs="{'readonly': [('is_quantity_done_editable', '=', False)]}"/>
+					<field name="product_uom1" attrs="{'readonly': [('state', '!=', 'draft'), ('additional', '=', False)]}" options="{'no_open': True, 'no_create': True}" groups="uom.group_uom"/>
+					<field name="product_uom_qty2" attrs="{'readonly': [('is_initial_demand_editable', '=', False)]}"/>
+					<field name="quantity_done2" attrs="{'readonly': [('is_quantity_done_editable', '=', False)]}"/>
+					<field name="product_uom2" attrs="{'readonly': [('state', '!=', 'draft'), ('additional', '=', False)]}" options="{'no_open': True, 'no_create': True}" groups="uom.group_uom"/>
 				</xpath>
 				<xpath expr="//field[@name='product_id']" position="attributes">
 					<attribute name="options">{'no_create': 1}</attribute>
@@ -26,9 +26,9 @@
 			<field name="arch" type="xml">
 				<field name="qty_done" position="before">
 					<field name="qty_done1" string="Qty Done 1"/>
-					<field name="uom1" options="{'no_open': True, 'no_create': True}" string="UoM 1" groups="uom.group_uom"/>
+					<field name="product_uom_id1" options="{'no_open': True, 'no_create': True}" string="UoM 1" groups="uom.group_uom"/>
 					<field name="qty_done2" string="Qty Done 2"/>
-					<field name="uom2" options="{'no_open': True, 'no_create': True}" string="UoM 2" groups="uom.group_uom"/>
+					<field name="product_uom_id2" options="{'no_open': True, 'no_create': True}" string="UoM 2" groups="uom.group_uom"/>
 				</field>
 			</field>
 		</record>
