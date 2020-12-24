@@ -12,10 +12,10 @@
 					<attribute name="options">{'no_create': 1}</attribute>
 				</xpath>
 				<xpath expr="//field[@name='product_qty']" position="before">	
-					<field name="qty1"/>
-					<field name="uom1" readonly="1" options="{'no_create': True}" force_save="1"/>
-					<field name="qty2"/>
-					<field name="uom2" readonly="1" options="{'no_create': True}" force_save="1"/>
+					<field name="product_qty1"/>
+					<field name="product_uom1" readonly="1" options="{'no_create': True}" force_save="1"/>
+					<field name="product_qty2"/>
+					<field name="product_uom2" readonly="1" options="{'no_create': True}" force_save="1"/>
 				</xpath>
 				<xpath expr="//field[@name='product_uom']" position="attributes">
 					<attribute name="attrs">{'readonly': 1}</attribute>
