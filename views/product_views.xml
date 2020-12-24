@@ -6,6 +6,7 @@
 			<field name="inherit_id" ref="product.product_template_form_view"/>
 			<field name="arch" type="xml">
 				<field name="uom_id" position="after">
+					<field name="qty_available"/>
 					<field name="qty_available1"/>
 					<field name="qty_available2"/>
 					<field name="uom_id1" options="{'no_open': True, 'no_create': True}" groups="uom.group_uom"/>
