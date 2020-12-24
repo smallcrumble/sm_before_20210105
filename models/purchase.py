@@ -11,9 +11,9 @@ class PurchaseOrderLine(models.Model):
 	#qty2 = fields.Float(string='Qty 2', digits='Product Unit of Measure')
 	product_qty2 = fields.Float(string='Quantity 2', digits='Product Unit of Measure')
 	#uom1 = fields.Many2one('uom.uom', string='UoM 1')
-	product_uom1 = fields.Many2one('uom.uom', string='Unit of Measure', domain="[('category_id', '=', product_uom_category_id)]")
+	product_uom1 = fields.Many2one('uom.uom', string='UoM 1', domain="[('category_id', '=', product_uom_category_id)]")
 	#uom2 = fields.Many2one('uom.uom', string='UoM 2')
-	product_uom2 = fields.Many2one('uom.uom', string='Unit of Measure', domain="[('category_id', '=', product_uom_category_id)]")
+	product_uom2 = fields.Many2one('uom.uom', string='UoM 2', domain="[('category_id', '=', product_uom_category_id)]")
 
 	def _prepare_stock_move_vals(self, picking, price_unit, product_uom_qty, product_uom):
 		res = super(PurchaseOrderLine, self)._prepare_stock_move_vals(picking, price_unit, product_uom_qty, product_uom)
