@@ -38,6 +38,339 @@ class StockMove(models.Model):
 		readonly=True, help='Quantity 2 that has already been reserved for this move')
 	quantity_done1 = fields.Float('Done 1', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 	quantity_done2 = fields.Float('Done 2', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
+	forecast_availability1 = fields.Float('Forecast Availability 1', compute='_compute_forecast_information', digits='Product Unit of Measure')
+	forecast_availability2 = fields.Float('Forecast Availability 2', compute='_compute_forecast_information', digits='Product Unit of Measure')
+
+	@api.depends('move_line_ids.qty_done', 'move_line_ids.qty_done1', 'move_line_ids.qty_done2', 'move_line_ids.product_uom_id', 'move_line_ids.product_uom_id1', 'move_line_ids.product_uom_id2', 'move_line_nosuggest_ids.qty_done', 'picking_type_id')
+	def _quantity_done_compute(self):
+		if not any(self._ids):
+			# onchange
+			for move in self:
+				quantity_done = 0
+				quantity_done1 = 0
+				quantity_done2 = 0
+				for move_line in move._get_move_lines():
+					quantity_done += move_line.product_uom_id._compute_quantity(
+						move_line.qty_done, move.product_uom, round=False)
+					quantity_done1 += move_line.qty_done1
+					quantity_done2 += move_line.qty_done2
+					''' bypass _compute_quantity :
+					quantity_done1 += move_line.product_uom_id1._compute_quantity(
+						move_line.qty_done1, move.product_uom1, round=False)
+					quantity_done2 += move_line.product_uom_id2._compute_quantity(
+						move_line.qty_done2, move.product_uom2, round=False)
+					'''
+				move.quantity_done = quantity_done
+				move.quantity_done1 = quantity_done1
+				move.quantity_done2 = quantity_done2
+		else:
+			# compute
+			move_lines = self.env['stock.move.line']
+			for move in self:
+				move_lines |= move._get_move_lines()
+
+			data = self.env['stock.move.line'].read_group(
+				[('id', 'in', move_lines.ids)],
+				['move_id', 'product_uom_id', 'qty_done'], ['move_id', 'product_uom_id'],
+				lazy=False
+			)
+
+			data1 = self.env['stock.move.line'].read_group(
+				[('id', 'in', move_lines.ids)],
+				['move_id', 'product_uom_id1', 'qty_done1'], ['move_id', 'product_uom_id1'],
+				lazy=False
+			)
+
+			data2 = self.env['stock.move.line'].read_group(
+				[('id', 'in', move_lines.ids)],
+				['move_id', 'product_uom_id2', 'qty_done2'], ['move_id', 'product_uom_id2'],
+				lazy=False
+			)
+
+			'''_logger.info('data   : %s', str(data))
+			_logger.info('data 1 : %s', str(data1))
+			_logger.info('data 2 : %s', str(data2))
+			'''
+
+			rec = defaultdict(list)
+			rec1 = defaultdict(list)
+			rec2 = defaultdict(list)
+			for d in data:
+				rec[d['move_id'][0]] += [(d['product_uom_id'][0], d['qty_done'])]
+			for d in data1:
+				if d['product_uom_id1'] and d['qty_done1'] :
+					#_logger.info('d 1 : %s', str(d))
+					rec1[d['move_id'][0]] += [(d['product_uom_id1'][0], d['qty_done1'])]
+			for d in data2:
+				if d['product_uom_id2'] and d['qty_done2'] :
+					#_logger.info('d 2 : %s', str(d))
+					rec2[d['move_id'][0]] += [(d['product_uom_id2'][0], d['qty_done2'])]
+			
+			for move in self:
+				uom = move.product_uom
+				uom1 = move.product_uom1
+				uom2 = move.product_uom2
+				move.quantity_done = sum(
+					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty, uom, round=False)
+					 for line_uom_id, qty in rec.get(move.ids[0] if move.ids else move.id, [])
+				)
+				move.quantity_done1 = sum(
+					self.env['uom.uom'].browse(line_uom_id).qty1
+					 for line_uom_id, qty1 in rec1.get(move.ids[0] if move.ids else move.id, [])
+				)
+				move.quantity_done2 = sum(
+					self.env['uom.uom'].browse(line_uom_id).qty2
+					 for line_uom_id, qty2 in rec2.get(move.ids[0] if move.ids else move.id, [])
+				)
+				''' bypass _compute_quantity :
+				move.quantity_done1 = sum(
+					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty1, uom1, round=False)
+					 for line_uom_id, qty1 in rec1.get(move.ids[0] if move.ids else move.id, [])
+				)
+				move.quantity_done2 = sum(
+					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty2, uom2, round=False)
+					 for line_uom_id, qty2 in rec2.get(move.ids[0] if move.ids else move.id, [])
+				)
+				'''
+
+	def _quantity_done_set(self):
+		quantity_done = self[0].quantity_done  # any call to create will invalidate `move.quantity_done`
+		quantity_done1 = self[0].quantity_done1
+		quantity_done2 = self[0].quantity_done2
+		for move in self:
+			move_lines = move._get_move_lines()
+			if not move_lines:
+				if quantity_done:
+					# do not impact reservation here
+					move_line = self.env['stock.move.line'].create(dict(move._prepare_move_line_vals(), qty_done=quantity_done, qty_done1=quantity_done1, qty_done2=quantity_done2))
+					move.write({'move_line_ids': [(4, move_line.id)]})
+			elif len(move_lines) == 1:
+				move_lines[0].qty_done = quantity_done
+				move_lines[0].qty_done1 = quantity_done1
+				move_lines[0].qty_done2 = quantity_done2
+				#_logger.info('_quantity_done_set : %s', str(quantity_done))
+			else:
+				# Bypass the error if we're trying to write the same value.
+				ml_quantity_done = 0
+				ml_quantity_done1 = 0
+				ml_quantity_done2 = 0
+				for move_line in move_lines:
+					ml_quantity_done += move_line.product_uom_id._compute_quantity(move_line.qty_done, move.product_uom, round=False)
+					ml_quantity_done1 += move_line.qty_done # bypass _compute_quantity, tp ga yakin codingnya
+					ml_quantity_done2 += move_line.qty_done
+				if float_compare(quantity_done, ml_quantity_done, precision_rounding=move.product_uom.rounding) != 0:
+					raise UserError(_("Cannot set the done quantity from this stock move, work directly with the move lines."))
+
+	@api.depends('move_line_ids.product_qty', 'move_line_ids.product_uom_qty1', 'move_line_ids.product_uom_qty2')
+	def _compute_reserved_availability(self):
+		""" Fill the `availability` field on a stock move, which is the actual reserved quantity
+		and is represented by the aggregated `product_qty` on the linked move lines. If the move
+		is force assigned, the value will be 0.
+		"""
+		if not any(self._ids):
+			# onchange
+			for move in self:
+				reserved_availability = sum(move.move_line_ids.mapped('product_qty'))
+				move.reserved_availability = move.product_id.uom_id._compute_quantity(
+					reserved_availability, move.product_uom, rounding_method='HALF-UP')
+				move.reserved_availability1 = sum(move.move_line_ids.mapped('product_uom_qty1'))
+				move.reserved_availability2 = sum(move.move_line_ids.mapped('product_uom_qty2'))
+		else:
+			# compute
+			result = {data['move_id'][0]: data['product_qty'] for data in
+					  self.env['stock.move.line'].read_group([('move_id', 'in', self.ids)], ['move_id', 'product_qty'], ['move_id'])}
+			for move in self:
+				move.reserved_availability = move.product_id.uom_id._compute_quantity(
+					result.get(move.id, 0.0), move.product_uom, rounding_method='HALF-UP')
+				move.reserved_availability1 = 0.0
+				move.reserved_availability2 = 0.0
+
+	@api.depends('state', 'product_id', 'product_qty', 'location_id')
+	def _compute_product_availability(self):
+		""" Fill the `availability` field on a stock move, which is the quantity to potentially
+		reserve. When the move is done, `availability` is set to the quantity the move did actually
+		move.
+		"""
+		for move in self:
+			if move.state == 'done':
+				move.availability = move.product_qty
+				move.availability1 = move.product_qty1
+				move.availability2 = move.product_qty2
+			else:
+				total_availability = self.env['stock.quant']._get_available_quantity(move.product_id, move.location_id) if move.product_id else 0.0
+				move.availability = min(move.product_qty, total_availability)
+				total_availability1 = self.env['stock.quant']._get_available_quantity1(move.product_id, move.location_id) if move.product_id else 0.0
+				move.availability1 = min(move.product_qty1, total_availability1)
+				total_availability2 = self.env['stock.quant']._get_available_quantity2(move.product_id, move.location_id) if move.product_id else 0.0
+				move.availability2 = min(move.product_qty1, total_availability2)
+
+	@api.depends('product_id', 'picking_type_id', 'picking_id', 'reserved_availability', 'priority', 'state', 'product_uom_qty', 'location_id')
+	def _compute_forecast_information(self):
+		""" Compute forecasted information of the related product by warehouse."""
+		self.forecast_availability = False
+		self.forecast_availability1 = False
+		self.forecast_availability2 = False
+		self.forecast_expected_date = False
+
+		not_product_moves = self.filtered(lambda move: move.product_id.type != 'product')
+		for move in not_product_moves:
+			move.forecast_availability = move.product_qty
+			move.forecast_availability1 = move.product_qty1
+			move.forecast_availability2 = move.product_qty2
+
+		product_moves = (self - not_product_moves)
+		warehouse_by_location = {loc: loc.get_warehouse() for loc in product_moves.location_id}
+
+		outgoing_unreserved_moves_per_warehouse = defaultdict(lambda: self.env['stock.move'])
+		for move in product_moves:
+			picking_type = move.picking_type_id or move.picking_id.picking_type_id
+			is_unreserved = move.state in ('waiting', 'confirmed', 'partially_available')
+			if picking_type.code in self._consuming_picking_types() and is_unreserved:
+				outgoing_unreserved_moves_per_warehouse[warehouse_by_location[move.location_id]] |= move
+			elif picking_type.code in self._consuming_picking_types():
+				move.forecast_availability = move.reserved_availability
+				move.forecast_availability1 = move.reserved_availability1
+				move.forecast_availability2 = move.reserved_availability2
+
+		for warehouse, moves in outgoing_unreserved_moves_per_warehouse.items():
+			if not warehouse:  # No prediction possible if no warehouse.
+				continue
+			product_variant_ids = moves.product_id.ids
+			wh_location_ids = [loc['id'] for loc in self.env['stock.location'].search_read(
+				[('id', 'child_of', warehouse.view_location_id.id)],
+				['id'],
+			)]
+			forecast_lines = self.env['report.stock.report_product_product_replenishment']\
+				._get_report_lines(None, product_variant_ids, wh_location_ids)
+			for move in moves:
+				lines = [l for l in forecast_lines if l["move_out"] == move._origin and l["replenishment_filled"] is True]
+				if lines:
+					move.forecast_availability = sum(m['quantity'] for m in lines)
+					move.forecast_availability1 = sum(m['quantity1'] for m in lines)
+					move.forecast_availability2 = sum(m['quantity2'] for m in lines)
+					move_ins_lines = list(filter(lambda report_line: report_line['move_in'], lines))
+					if move_ins_lines:
+						expected_date = max(m['move_in'].date for m in move_ins_lines)
+						move.forecast_expected_date = expected_date
+
+	def _set_lot_ids(self):
+		for move in self:
+			move_lines_commands = []
+			if move.picking_type_id.show_reserved is False:
+				mls = move.move_line_nosuggest_ids
+			else:
+				mls = move.move_line_ids
+			mls = mls.filtered(lambda ml: ml.lot_id)
+			for ml in mls:
+				if ml.lot_id not in move.lot_ids:
+					move_lines_commands.append((2, ml.id))
+			ls = move.move_line_ids.lot_id
+			for lot in move.lot_ids:
+				if lot not in ls:
+					move_line_vals = self._prepare_move_line_vals(quantity=0)
+					move_line_vals['lot_id'] = lot.id
+					move_line_vals['lot_name'] = lot.name
+					move_line_vals['product_uom_id'] = move.product_id.uom_id.id
+					move_line_vals['product_uom_id1'] = move.product_id.uom_id1.id
+					move_line_vals['product_uom_id2'] = move.product_id.uom_id2.id
+					move_line_vals['qty_done'] = 1
+					move_line_vals['qty_done1'] = 1
+					move_line_vals['qty_done2'] = 1
+					move_lines_commands.append((0, 0, move_line_vals))
+			move.write({'move_line_ids': move_lines_commands})
+
+	@api.model
+	def default_get(self, fields_list):
+		# We override the default_get to make stock moves created after the picking was confirmed
+		# directly as available in immediate transfer mode. This allows to create extra move lines
+		# in the fp view. In planned transfer, the stock move are marked as `additional` and will be
+		# auto-confirmed.
+		defaults = super(StockMove, self).default_get(fields_list)
+		if self.env.context.get('default_picking_id'):
+			picking_id = self.env['stock.picking'].browse(self.env.context['default_picking_id'])
+			if picking_id.state == 'done':
+				defaults['state'] = 'done'
+				defaults['product_uom_qty'] = 0.0
+				defaults['product_uom_qty1'] = 0.0
+				defaults['product_uom_qty2'] = 0.0
+				defaults['additional'] = True
+			elif picking_id.state not in ['cancel', 'draft', 'done']:
+				if picking_id.immediate_transfer:
+					defaults['state'] = 'assigned'
+				defaults['product_uom_qty'] = 0.0
+				defaults['product_uom_qty1'] = 0.0
+				defaults['product_uom_qty2'] = 0.0
+				defaults['additional'] = True  # to trigger `_autoconfirm_picking`
+		return defaults
+
+	def _merge_moves_fields(self):
+		""" This method will return a dict of stock move’s values that represent the values of all moves in `self` merged. """
+		state = self._get_relevant_state_among_moves()
+		origin = '/'.join(set(self.filtered(lambda m: m.origin).mapped('origin')))
+		return {
+			'product_uom_qty': sum(self.mapped('product_uom_qty')),
+			'product_uom_qty1': sum(self.mapped('product_uom_qty1')),
+			'product_uom_qty2': sum(self.mapped('product_uom_qty2')),
+			'date': min(self.mapped('date')) if self.mapped('picking_id').move_type == 'direct' else max(self.mapped('date')),
+			'move_dest_ids': [(4, m.id) for m in self.mapped('move_dest_ids')],
+			'move_orig_ids': [(4, m.id) for m in self.mapped('move_orig_ids')],
+			'state': state,
+			'origin': origin,
+		}
+
+	def _action_confirm(self, merge=True, merge_into=False):
+		""" Confirms stock move or put it in waiting if it's linked to another move.
+		:param: merge: According to this boolean, a newly confirmed move will be merged
+		in another move of the same picking sharing its characteristics.
+		"""
+		move_create_proc = self.env['stock.move']
+		move_to_confirm = self.env['stock.move']
+		move_waiting = self.env['stock.move']
+
+		to_assign = {}
+		for move in self:
+			if move.state != 'draft':
+				continue
+			# if the move is preceeded, then it's waiting (if preceeding move is done, then action_assign has been called already and its state is already available)
+			if move.move_orig_ids:
+				move_waiting |= move
+			else:
+				if move.procure_method == 'make_to_order':
+					move_create_proc |= move
+				else:
+					move_to_confirm |= move
+			if move._should_be_assigned():
+				key = (move.group_id.id, move.location_id.id, move.location_dest_id.id)
+				if key not in to_assign:
+					to_assign[key] = self.env['stock.move']
+				to_assign[key] |= move
+
+		# create procurements for make to order moves
+		procurement_requests = []
+		for move in move_create_proc:
+			values = move._prepare_procurement_values()
+			origin = (move.group_id and move.group_id.name or (move.origin or move.picking_id.name or "/"))
+			procurement_requests.append(self.env['procurement.group'].Procurement(
+				move.product_id, move.product_uom_qty, move.product_uom,
+				move.product_uom_qty1, move.product_uom1, move.product_uom_qty2, move.product_uom2,
+				move.location_id, move.rule_id and move.rule_id.name or "/",
+				origin, move.company_id, values))
+		self.env['procurement.group'].run(procurement_requests, raise_user_error=not self.env.context.get('from_orderpoint'))
+
+		move_to_confirm.write({'state': 'confirmed'})
+		(move_waiting | move_create_proc).write({'state': 'waiting'})
+
+		# assign picking in batch for all confirmed move that share the same details
+		for moves in to_assign.values():
+			moves._assign_picking()
+		self._push_apply()
+		self._check_company()
+		moves = self
+		if merge:
+			moves = self._merge_moves(merge_into=merge_into)
+		# call `_action_assign` on every confirmed move which location_id bypasses the reservation
+		moves.filtered(lambda move: not move.picking_id.immediate_transfer and move._should_bypass_reservation() and move.state == 'confirmed')._action_assign()
+		return moves
 
 	def _prepare_move_line_vals(self, quantity=None, reserved_quant=None, quantity1=None, quantity2=None):
 		self.ensure_one()
@@ -59,14 +392,15 @@ class StockMove(models.Model):
 			uom_quantity = self.product_id.uom_id._compute_quantity(quantity, self.product_uom, rounding_method='HALF-UP')
 			uom_quantity = float_round(uom_quantity, precision_digits=rounding)
 			uom_quantity_back_to_product_uom = self.product_uom._compute_quantity(uom_quantity, self.product_id.uom_id, rounding_method='HALF-UP')
-			#_logger.info('qty1   : %s', str(self.qty1))
-			#_logger.info('qty2   : %s', str(self.qty2))
+			
 			if float_compare(quantity, uom_quantity_back_to_product_uom, precision_digits=rounding) == 0:
 				vals = dict(vals, product_uom_qty=uom_quantity)
 			else:
 				vals = dict(vals, product_uom_qty=quantity, product_uom_id=self.product_id.uom_id.id)
-			vals = dict(vals,product_uom_qty1=self.product_uom_qty1)
-			vals = dict(vals,product_uom_qty2=self.product_uom_qty2)
+			vals = dict(vals,product_uom_qty1=quantity1)
+			vals = dict(vals,product_uom_qty2=quantity2)
+			#vals = dict(vals,product_uom_qty1=self.product_uom_qty1)
+			#vals = dict(vals,product_uom_qty2=self.product_uom_qty2)
 			#_logger.info('vals  : %s', str(vals))
 			
 		if reserved_quant:
@@ -220,157 +554,11 @@ class StockMove(models.Model):
 		self.mapped('picking_id')._check_entire_pack()
 
 
-	@api.depends('move_line_ids.qty_done', 'move_line_ids.qty_done1', 'move_line_ids.qty_done2', 'move_line_ids.product_uom_id', 'move_line_ids.product_uom_id1', 'move_line_ids.product_uom_id2', 'move_line_nosuggest_ids.qty_done', 'picking_type_id')
-	def _quantity_done_compute(self):
-		if not any(self._ids):
-			# onchange
-			for move in self:
-				quantity_done = 0
-				quantity_done1 = 0
-				quantity_done2 = 0
-				for move_line in move._get_move_lines():
-					quantity_done += move_line.product_uom_id._compute_quantity(
-						move_line.qty_done, move.product_uom, round=False)
-					quantity_done1 += move_line.product_uom_id1._compute_quantity(
-						move_line.qty_done1, move.product_uom1, round=False)
-					quantity_done2 += move_line.product_uom_id2._compute_quantity(
-						move_line.qty_done2, move.product_uom2, round=False)
-				move.quantity_done = quantity_done
-				move.quantity_done1 = quantity_done1
-				move.quantity_done2 = quantity_done2
-		else:
-			# compute
-			move_lines = self.env['stock.move.line']
-			for move in self:
-				move_lines |= move._get_move_lines()
+	
+	
+	
 
-			data = self.env['stock.move.line'].read_group(
-				[('id', 'in', move_lines.ids)],
-				['move_id', 'product_uom_id', 'qty_done'], ['move_id', 'product_uom_id'],
-				lazy=False
-			)
-
-			data1 = self.env['stock.move.line'].read_group(
-				[('id', 'in', move_lines.ids)],
-				['move_id', 'product_uom_id1', 'qty_done1'], ['move_id', 'product_uom_id1'],
-				lazy=False
-			)
-
-			data2 = self.env['stock.move.line'].read_group(
-				[('id', 'in', move_lines.ids)],
-				['move_id', 'product_uom_id2', 'qty_done2'], ['move_id', 'product_uom_id2'],
-				lazy=False
-			)
-
-			'''_logger.info('data   : %s', str(data))
-			_logger.info('data 1 : %s', str(data1))
-			_logger.info('data 2 : %s', str(data2))
-			'''
-
-			rec = defaultdict(list)
-			rec1 = defaultdict(list)
-			rec2 = defaultdict(list)
-			for d in data:
-				rec[d['move_id'][0]] += [(d['product_uom_id'][0], d['qty_done'])]
-			for d in data1:
-				if d['product_uom_id1'] and d['qty_done1'] :
-					#_logger.info('d 1 : %s', str(d))
-					rec1[d['move_id'][0]] += [(d['product_uom_id1'][0], d['qty_done1'])]
-			for d in data2:
-				if d['product_uom_id2'] and d['qty_done2'] :
-					#_logger.info('d 2 : %s', str(d))
-					rec2[d['move_id'][0]] += [(d['product_uom_id2'][0], d['qty_done2'])]
-			
-			for move in self:
-				uom = move.product_uom
-				uom1 = move.product_uom1
-				uom2 = move.product_uom2
-				move.quantity_done = sum(
-					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty, uom, round=False)
-					 for line_uom_id, qty in rec.get(move.ids[0] if move.ids else move.id, [])
-				)
-				move.quantity_done1 = sum(
-					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty1, uom1, round=False)
-					 for line_uom_id, qty1 in rec1.get(move.ids[0] if move.ids else move.id, [])
-				)
-				move.quantity_done2 = sum(
-					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty2, uom2, round=False)
-					 for line_uom_id, qty2 in rec2.get(move.ids[0] if move.ids else move.id, [])
-				)
-
-	def _quantity_done_set(self):
-		quantity_done = self[0].quantity_done  # any call to create will invalidate `move.quantity_done`
-		quantity_done1 = self[0].quantity_done1
-		quantity_done2 = self[0].quantity_done2
-		for move in self:
-			move_lines = move._get_move_lines()
-			if not move_lines:
-				if quantity_done:
-					# do not impact reservation here
-					move_line = self.env['stock.move.line'].create(dict(move._prepare_move_line_vals(), qty_done=quantity_done, qty_done1=quantity_done1, qty_done2=quantity_done2))
-					move.write({'move_line_ids': [(4, move_line.id)]})
-			elif len(move_lines) == 1:
-				move_lines[0].qty_done = quantity_done
-				move_lines[0].qty_done1 = quantity_done1
-				move_lines[0].qty_done2 = quantity_done2
-				#_logger.info('_quantity_done_set : %s', str(quantity_done))
-			else:
-				# Bypass the error if we're trying to write the same value.
-				ml_quantity_done = 0
-				for move_line in move_lines:
-					ml_quantity_done += move_line.product_uom_id._compute_quantity(move_line.qty_done, move.product_uom, round=False)
-				if float_compare(quantity_done, ml_quantity_done, precision_rounding=move.product_uom.rounding) != 0:
-					raise UserError(_("Cannot set the done quantity from this stock move, work directly with the move lines."))
-
-	@api.depends('move_line_ids.product_qty')
-	def _compute_reserved_availability(self):
-		""" Fill the `availability` field on a stock move, which is the actual reserved quantity
-		and is represented by the aggregated `product_qty` on the linked move lines. If the move
-		is force assigned, the value will be 0.
-		"""
-		if not any(self._ids):
-			# onchange
-			for move in self:
-				reserved_availability = sum(move.move_line_ids.mapped('product_qty'))
-				move.reserved_availability = move.product_id.uom_id._compute_quantity(
-					reserved_availability, move.product_uom, rounding_method='HALF-UP')
-				move.reserved_availability1 = sum(move.move_line_ids.mapped('product_uom_qty1'))
-				move.reserved_availability2 = sum(move.move_line_ids.mapped('product_uom_qty2'))
-		else:
-			# compute
-			result = {data['move_id'][0]: data['product_qty'] for data in
-					  self.env['stock.move.line'].read_group([('move_id', 'in', self.ids)], ['move_id', 'product_qty'], ['move_id'])}
-			for move in self:
-				move.reserved_availability = move.product_id.uom_id._compute_quantity(
-					result.get(move.id, 0.0), move.product_uom, rounding_method='HALF-UP')
-				move.reserved_availability1 = 0.0
-				move.reserved_availability2 = 0.0
-
-
-	@api.model
-	def default_get(self, fields_list):
-		# We override the default_get to make stock moves created after the picking was confirmed
-		# directly as available in immediate transfer mode. This allows to create extra move lines
-		# in the fp view. In planned transfer, the stock move are marked as `additional` and will be
-		# auto-confirmed.
-		defaults = super(StockMove, self).default_get(fields_list)
-		if self.env.context.get('default_picking_id'):
-			picking_id = self.env['stock.picking'].browse(self.env.context['default_picking_id'])
-			if picking_id.state == 'done':
-				defaults['state'] = 'done'
-				defaults['product_uom_qty'] = 0.0
-				defaults['product_uom_qty1'] = 0.0
-				defaults['product_uom_qty2'] = 0.0
-				defaults['additional'] = True
-			elif picking_id.state not in ['cancel', 'draft', 'done']:
-				if picking_id.immediate_transfer:
-					defaults['state'] = 'assigned'
-				defaults['product_uom_qty'] = 0.0
-				defaults['product_uom_qty1'] = 0.0
-				defaults['product_uom_qty2'] = 0.0
-				defaults['additional'] = True  # to trigger `_autoconfirm_picking`
-		return defaults
-
+	
 	def _merge_moves_fields(self):
 		""" This method will return a dict of stock move’s values that represent the values of all moves in `self` merged. """
 		state = self._get_relevant_state_among_moves()
@@ -390,12 +578,8 @@ class StockMove(models.Model):
 class StockMoveLine(models.Model):
 	_inherit = "stock.move.line"
 
-	#uom1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.")
 	product_uom_id1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.")
-	#uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
 	product_uom_id2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
-	#qty1 = fields.Float('Demand 1', default=0.0)
-	#qty2 = fields.Float('Demand 2', default=0.0)
 	#always product_qty1 = product_uom_qty1
 	#always product_qty2 = product_uom_qty2
 	product_uom_qty1 = fields.Float('Reserved 1', default=0.0, digits='Product Unit of Measure', required=True)
@@ -403,7 +587,6 @@ class StockMoveLine(models.Model):
 	qty_done1 = fields.Float('Done 1', default=0.0, digits='Product Unit of Measure', copy=False)
 	qty_done2 = fields.Float('Done 2', default=0.0, digits='Product Unit of Measure', copy=False)
 	
-
 	@api.model_create_multi
 	def create(self, vals_list):
 		_logger.info('**MASUK create MOVE_LINE**')

@@ -158,7 +158,7 @@ class StockQuant(models.Model):
 		return result
 
 	@api.model
-	def _get_available_quantity(self, product_id, location_id, lot_id=None, package_id=None, owner_id=None, strict=False, allow_negative=False):
+	def _get_available_quantity1(self, product_id, location_id, lot_id=None, package_id=None, owner_id=None, strict=False, allow_negative=False):
 		""" Return the available quantity, i.e. the sum of `quantity` minus the sum of
 		`reserved_quantity`, for the set of quants sharing the combination of `product_id,
 		location_id` if `strict` is set to False or sharing the *exact same characteristics*
@@ -180,24 +180,63 @@ class StockQuant(models.Model):
 		quants = self._gather(product_id, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=strict)
 		rounding = product_id.uom_id.rounding
 		if product_id.tracking == 'none':
-			available_quantity = sum(quants.mapped('quantity')) - sum(quants.mapped('reserved_quantity'))
-			#available_quantity1 = sum(quants.mapped('quantity1')) - sum(quants.mapped('reserved_quantity1'))
-			#available_quantity2 = sum(quants.mapped('quantity2')) - sum(quants.mapped('reserved_quantity2'))
+			available_quantity1 = sum(quants.mapped('quantity1')) - sum(quants.mapped('reserved_quantity1'))
 			if allow_negative:
-				return available_quantity #return bisa lbh dr 1 sekaligus ato musti gmn, bikin function 1 1
+				return available_quantity1
 			else:
-				return available_quantity if float_compare(available_quantity, 0.0, precision_rounding=rounding) >= 0.0 else 0.0
+				return available_quantity1 if float_compare(available_quantity1, 0.0, precision_rounding=rounding) >= 0.0 else 0.0
 		else:
 			availaible_quantities = {lot_id: 0.0 for lot_id in list(set(quants.mapped('lot_id'))) + ['untracked']}
 			for quant in quants:
 				if not quant.lot_id:
-					availaible_quantities['untracked'] += quant.quantity - quant.reserved_quantity
+					availaible_quantities['untracked'] += quant.quantity1 - quant.reserved_quantity1
 				else:
-					availaible_quantities[quant.lot_id] += quant.quantity - quant.reserved_quantity
+					availaible_quantities[quant.lot_id] += quant.quantity1 - quant.reserved_quantity1
 			if allow_negative:
 				return sum(availaible_quantities.values())
 			else:
-				return sum([available_quantity for available_quantity in availaible_quantities.values() if float_compare(available_quantity, 0, precision_rounding=rounding) > 0])
+				return sum([available_quantity1 for available_quantity1 in availaible_quantities.values() if float_compare(available_quantity1, 0, precision_rounding=rounding) > 0])
+
+	@api.model
+	def _get_available_quantity2(self, product_id, location_id, lot_id=None, package_id=None, owner_id=None, strict=False, allow_negative=False):
+		""" Return the available quantity, i.e. the sum of `quantity` minus the sum of
+		`reserved_quantity`, for the set of quants sharing the combination of `product_id,
+		location_id` if `strict` is set to False or sharing the *exact same characteristics*
+		otherwise.
+		This method is called in the following usecases:
+			- when a stock move checks its availability
+			- when a stock move actually assign
+			- when editing a move line, to check if the new value is forced or not
+			- when validating a move line with some forced values and have to potentially unlink an
+			  equivalent move line in another picking
+		In the two first usecases, `strict` should be set to `False`, as we don't know what exact
+		quants we'll reserve, and the characteristics are meaningless in this context.
+		In the last ones, `strict` should be set to `True`, as we work on a specific set of
+		characteristics.
+
+		:return: available quantity as a float
+		"""
+		self = self.sudo()
+		quants = self._gather(product_id, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=strict)
+		rounding = product_id.uom_id.rounding
+		if product_id.tracking == 'none':
+			available_quantity2 = sum(quants.mapped('quantity2')) - sum(quants.mapped('reserved_quantity2'))
+			if allow_negative:
+				return available_quantity2
+			else:
+				return available_quantity2 if float_compare(available_quantity2, 0.0, precision_rounding=rounding) >= 0.0 else 0.0
+		else:
+			availaible_quantities = {lot_id: 0.0 for lot_id in list(set(quants.mapped('lot_id'))) + ['untracked']}
+			for quant in quants:
+				if not quant.lot_id:
+					availaible_quantities['untracked'] += quant.quantity2 - quant.reserved_quantity2
+				else:
+					availaible_quantities[quant.lot_id] += quant.quantity2 - quant.reserved_quantity2
+			if allow_negative:
+				return sum(availaible_quantities.values())
+			else:
+				return sum([available_quantity2 for available_quantity2 in availaible_quantities.values() if float_compare(available_quantity2, 0, precision_rounding=rounding) > 0])
+
 
 	@api.onchange('location_id', 'product_id', 'lot_id', 'package_id', 'owner_id')
 	def _onchange_location_or_product_id(self):
