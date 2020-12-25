@@ -115,11 +115,11 @@ class StockMove(models.Model):
 					 for line_uom_id, qty in rec.get(move.ids[0] if move.ids else move.id, [])
 				)
 				move.quantity_done1 = sum(
-					self.env['uom.uom'].browse(line_uom_id).qty1
+					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty1, uom1, round=False)
 					 for line_uom_id, qty1 in rec1.get(move.ids[0] if move.ids else move.id, [])
 				)
 				move.quantity_done2 = sum(
-					self.env['uom.uom'].browse(line_uom_id).qty2
+					self.env['uom.uom'].browse(line_uom_id)._compute_quantity(qty2, uom2, round=False)
 					 for line_uom_id, qty2 in rec2.get(move.ids[0] if move.ids else move.id, [])
 				)
 				''' bypass _compute_quantity :
