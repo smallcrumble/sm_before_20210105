@@ -12,21 +12,17 @@ _logger = logging.getLogger(__name__)
 class StockMove(models.Model):
 	_inherit = "stock.move"
 	
-	#qty1 = fields.Float('Demand 1')
 	product_uom_qty1 = fields.Float(
 		'Demand 1',
 		digits='Product Unit of Measure',
 		default=0.0, states={'done': [('readonly', True)]})
-	#qty2 = fields.Float('Demand 2')
 	#always product_qty1 = product_uom_qty1
 	#always product_qty2 = product_uom_qty2
 	product_uom_qty2 = fields.Float(
 		'Demand 2',
 		digits='Product Unit of Measure',
 		default=0.0, states={'done': [('readonly', True)]})
-	#uom1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.")
 	product_uom1 = fields.Many2one('uom.uom', 'UoM 1', domain="[('category_id', '=', product_uom_category_id)]")
-	#uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
 	product_uom2 = fields.Many2one('uom.uom', 'UoM 2', domain="[('category_id', '=', product_uom_category_id)]")
 	reserved_availability = fields.Float(
 		'Quantity Reserved', compute='_compute_reserved_availability',
@@ -40,8 +36,6 @@ class StockMove(models.Model):
 		'Qty Reserved 2', compute='_compute_reserved_availability',
 		digits='Product Unit of Measure',
 		readonly=True, help='Quantity 2 that has already been reserved for this move')
-	#done1 = fields.Float('Done 1', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
-	#done2 = fields.Float('Done 2', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 	quantity_done1 = fields.Float('Done 1', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 	quantity_done2 = fields.Float('Done 2', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 
@@ -57,9 +51,7 @@ class StockMove(models.Model):
 			'location_dest_id': location_dest_id,
 			'picking_id': self.picking_id.id,
 			'company_id': self.company_id.id,
-			#'qty1': self.qty1,
 			'product_uom_id1': self.product_uom1.id,
-			#'qty2': self.qty2,
 			'product_uom_id2': self.product_uom2.id,
 		}
 		if quantity:
