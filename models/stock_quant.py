@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields
+from odoo import models, fields, api
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -130,47 +130,7 @@ class StockQuant(models.Model):
 			res._check_company()
 		return res
 
-	def _get_inventory_move_values(self, qty, qty1, qty2, location_id, location_dest_id, out=False):
-		""" Called when user manually set a new quantity (via `inventory_quantity`)
-		just before creating the corresponding stock move.
-
-		:param location_id: `stock.location`
-		:param location_dest_id: `stock.location`
-		:param out: boolean to set on True when the move go to inventory adjustment location.
-		:return: dict with all values needed to create a new `stock.move` with its move line.
-		"""
-		self.ensure_one()
-		return {
-			'name': _('Product Quantity Updated'),
-			'product_id': self.product_id.id,
-			'product_uom': self.product_uom_id.id,
-			'product_uom_qty': qty,
-			'product_uom1': self.product_uom_id1.id,
-			'product_uom_qty1': qty1,
-			'product_uom2': self.product_uom_id2.id,
-			'product_uom_qty2': qty2,
-			'company_id': self.company_id.id or self.env.company.id,
-			'state': 'confirmed',
-			'location_id': location_id.id,
-			'location_dest_id': location_dest_id.id,
-			'move_line_ids': [(0, 0, {
-				'product_id': self.product_id.id,
-				'product_uom_id': self.product_uom_id.id,
-				'qty_done': qty,
-				'product_uom_id1': self.product_uom_id1.id,
-				'qty_done1': qty1,
-				'product_uom_id2': self.product_uom_id2.id,
-				'qty_done2': qty2,
-				'location_id': location_id.id,
-				'location_dest_id': location_dest_id.id,
-				'company_id': self.company_id.id or self.env.company.id,
-				'lot_id': self.lot_id.id,
-				'package_id': out and self.package_id.id or False,
-				'result_package_id': (not out) and self.package_id.id or False,
-				'owner_id': self.owner_id.id,
-			})]
-		}
-
+	
 	@api.model
 	def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
 		""" Override to set the `inventory_quantity` field if we're in "inventory mode" as well
@@ -375,3 +335,56 @@ class StockQuant(models.Model):
 				self.env.cr.execute(query)
 		except Error as e:
 			_logger.info('an error occured while merging quants: %s', e.pgerror)
+
+	@api.model
+	def _get_inventory_fields_create(self):
+		""" Returns a list of fields user can edit when he want to create a quant in `inventory_mode`.
+		"""
+		return ['product_id', 'location_id', 'lot_id', 'package_id', 'owner_id', 'inventory_quantity', 'inventory_quantity1', 'inventory_quantity2']
+
+	@api.model
+	def _get_inventory_fields_write(self):
+		""" Returns a list of fields user can edit when he want to edit a quant in `inventory_mode`.
+		"""
+		return ['inventory_quantity', 'inventory_quantity1', 'inventory_quantity2']
+
+	def _get_inventory_move_values(self, qty, qty1, qty2, location_id, location_dest_id, out=False):
+		""" Called when user manually set a new quantity (via `inventory_quantity`)
+		just before creating the corresponding stock move.
+
+		:param location_id: `stock.location`
+		:param location_dest_id: `stock.location`
+		:param out: boolean to set on True when the move go to inventory adjustment location.
+		:return: dict with all values needed to create a new `stock.move` with its move line.
+		"""
+		self.ensure_one()
+		return {
+			'name': _('Product Quantity Updated'),
+			'product_id': self.product_id.id,
+			'product_uom': self.product_uom_id.id,
+			'product_uom_qty': qty,
+			'product_uom1': self.product_uom_id1.id,
+			'product_uom_qty1': qty1,
+			'product_uom2': self.product_uom_id2.id,
+			'product_uom_qty2': qty2,
+			'company_id': self.company_id.id or self.env.company.id,
+			'state': 'confirmed',
+			'location_id': location_id.id,
+			'location_dest_id': location_dest_id.id,
+			'move_line_ids': [(0, 0, {
+				'product_id': self.product_id.id,
+				'product_uom_id': self.product_uom_id.id,
+				'qty_done': qty,
+				'product_uom_id1': self.product_uom_id1.id,
+				'qty_done1': qty1,
+				'product_uom_id2': self.product_uom_id2.id,
+				'qty_done2': qty2,
+				'location_id': location_id.id,
+				'location_dest_id': location_dest_id.id,
+				'company_id': self.company_id.id or self.env.company.id,
+				'lot_id': self.lot_id.id,
+				'package_id': out and self.package_id.id or False,
+				'result_package_id': (not out) and self.package_id.id or False,
+				'owner_id': self.owner_id.id,
+			})]
+		}
