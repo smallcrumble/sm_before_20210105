@@ -25,9 +25,9 @@ class StockMove(models.Model):
 		digits='Product Unit of Measure',
 		default=0.0, states={'done': [('readonly', True)]})
 	#uom1 = fields.Many2one('uom.uom', 'UoM 1', help="Extra unit of measure.")
-	product_uom1 = fields.Many2one('uom.uom', 'Unit of Measure', domain="[('category_id', '=', product_uom_category_id)]")
+	product_uom1 = fields.Many2one('uom.uom', 'UoM 1', domain="[('category_id', '=', product_uom_category_id)]")
 	#uom2 = fields.Many2one('uom.uom', 'UoM 2', help="Extra unit of measure.")
-	product_uom2 = fields.Many2one('uom.uom', 'Unit of Measure', domain="[('category_id', '=', product_uom_category_id)]")
+	product_uom2 = fields.Many2one('uom.uom', 'UoM 2', domain="[('category_id', '=', product_uom_category_id)]")
 	reserved_availability = fields.Float(
 		'Quantity Reserved', compute='_compute_reserved_availability',
 		digits='Product Unit of Measure',
@@ -42,8 +42,8 @@ class StockMove(models.Model):
 		readonly=True, help='Quantity 2 that has already been reserved for this move')
 	#done1 = fields.Float('Done 1', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 	#done2 = fields.Float('Done 2', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
-	quantity_done1 = fields.Float('QtyDone 1', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
-	quantity_done2 = fields.Float('QtyDone 2', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
+	quantity_done1 = fields.Float('Done 1', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
+	quantity_done2 = fields.Float('Done 2', compute='_quantity_done_compute', digits='Product Unit of Measure', inverse='_quantity_done_set')
 
 	def _prepare_move_line_vals(self, quantity=None, reserved_quant=None, quantity1=None, quantity2=None):
 		self.ensure_one()
