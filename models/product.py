@@ -76,14 +76,15 @@ class Product(models.Model):
 		domain_move_out_todo = [('state', 'in', ('waiting', 'confirmed', 'assigned', 'partially_available'))] + domain_move_out
 		moves_in_res = dict((item['product_id'][0], item['product_qty']) for item in Move.read_group(domain_move_in_todo, ['product_id', 'product_qty'], ['product_id'], orderby='id'))
 		moves_out_res = dict((item['product_id'][0], item['product_qty']) for item in Move.read_group(domain_move_out_todo, ['product_id', 'product_qty'], ['product_id'], orderby='id'))
-		quants_res = dict((item['product_id'][0], (item['quantity'], item['reserved_quantity'])) for item in Quant.read_group(domain_quant, ['product_id', 'quantity', 'reserved_quantity'], ['product_id'], orderby='id'))
+		quants_res = dict((item['product_id'][0], (item['quantity'], item['reserved_quantity'], item['quantity1'], item['reserved_quantity1'], item['quantity2'], item['reserved_quantity2'])) for item in Quant.read_group(domain_quant, ['product_id', 'quantity', 'reserved_quantity', 'quantity1', 'reserved_quantity1', 'quantity2', 'reserved_quantity2'], ['product_id'], orderby='id'))
+		_logger.info('Quants_res : %s',str(quants_res))
 		if dates_in_the_past:
 			# Calculate the moves that were done before now to calculate back in time (as most questions will be recent ones)
 			domain_move_in_done = [('state', '=', 'done'), ('date', '>', to_date)] + domain_move_in_done
 			domain_move_out_done = [('state', '=', 'done'), ('date', '>', to_date)] + domain_move_out_done
 			moves_in_res_past = dict((item['product_id'][0], item['product_qty']) for item in Move.read_group(domain_move_in_done, ['product_id', 'product_qty'], ['product_id'], orderby='id'))
 			moves_out_res_past = dict((item['product_id'][0], item['product_qty']) for item in Move.read_group(domain_move_out_done, ['product_id', 'product_qty'], ['product_id'], orderby='id'))
-
+			_logger.info('moves_in_res_past : %s',str(moves_in_res_past))
 		res = dict()
 		for product in self.with_context(prefetch_fields=False):
 			product_id = product.id
@@ -97,12 +98,17 @@ class Product(models.Model):
 			res[product_id] = {}
 			if dates_in_the_past:
 				qty_available = quants_res.get(product_id, [0.0])[0] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
+				qty_available1 = quants_res.get(product_id, [0.0])[0] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
+				qty_available2 = quants_res.get(product_id, [0.0])[0] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
 			else:
 				qty_available = quants_res.get(product_id, [0.0])[0]
+				qty_available1 = quants_res.get(product_id, [0.0])[0]
+				qty_available2 = quants_res.get(product_id, [0.0])[0]
+
 			reserved_quantity = quants_res.get(product_id, [False, 0.0])[1]
 			res[product_id]['qty_available'] = float_round(qty_available, precision_rounding=rounding)
-			res[product_id]['qty_available1'] = 1 #float_round(qty_available, precision_rounding=rounding)
-			res[product_id]['qty_available2'] = 1 #float_round(qty_available, precision_rounding=rounding)
+			res[product_id]['qty_available1'] = float_round(qty_available1, precision_rounding=rounding)
+			res[product_id]['qty_available2'] = float_round(qty_available2, precision_rounding=rounding)
 			res[product_id]['free_qty'] = float_round(qty_available - reserved_quantity, precision_rounding=rounding)
 			res[product_id]['incoming_qty'] = float_round(moves_in_res.get(product_id, 0.0), precision_rounding=rounding)
 			res[product_id]['outgoing_qty'] = float_round(moves_out_res.get(product_id, 0.0), precision_rounding=rounding)
