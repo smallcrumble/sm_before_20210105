@@ -220,8 +220,8 @@ class StockMoveLine(models.Model):
 		_logger.info('QTY JADI 0')
 		(self - ml_to_delete).with_context(bypass_reservation_update=True).write({
 			'product_uom_qty': 0.00,
-			'qty1': 0.00,
-			'qty2': 0.00,
+			'product_uom_qty1': 0.00,
+			'product_uom_qty2': 0.00,
 			'date': fields.Datetime.now(),
 		})
 		
