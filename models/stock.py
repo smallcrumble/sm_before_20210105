@@ -782,8 +782,8 @@ class StockMove(models.Model):
 		# compatible with the move's UOM.
 		new_product_qty = self.product_id.uom_id._compute_quantity(self.product_qty - qty, self.product_uom, round=False)
 		new_product_qty = float_round(new_product_qty, precision_digits=self.env['decimal.precision'].precision_get('Product Unit of Measure'))
-		new_product_qty1 = self.product_qty1 - qty1
-		new_product_qty2 = self.product_qty2 - qty2
+		new_product_qty1 = self.product_uom_qty1 - qty1
+		new_product_qty2 = self.product_uom_qty2 - qty2
 		self.with_context(do_not_unreserve=True, rounding_method='HALF-UP').write({'product_uom_qty': new_product_qty, 'product_uom_qty1': new_product_qty1, 'product_uom_qty2': new_product_qty2})
 		return new_move_vals
 
