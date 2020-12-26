@@ -336,7 +336,7 @@ class StockQuant(models.Model):
 		return self._get_available_quantity(product_id, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=False, allow_negative=True), fields.Datetime.from_string(in_date)
 
 	@api.model
-	def _update_reserved_quantity(self, product_id, location_id, quantity, lot_id=None, package_id=None, owner_id=None, strict=False):
+	def _update_reserved_quantity(self, product_id, location_id, quantity, quantity1, quantity2, lot_id=None, package_id=None, owner_id=None, strict=False):
 		""" Increase the reserved quantity, i.e. increase `reserved_quantity` for the set of quants
 		sharing the combination of `product_id, location_id` if `strict` is set to False or sharing
 		the *exact same characteristics* otherwise. Typically, this method is called when reserving
@@ -356,11 +356,16 @@ class StockQuant(models.Model):
 		if float_compare(quantity, 0, precision_rounding=rounding) > 0:
 			# if we want to reserve
 			available_quantity = self._get_available_quantity(product_id, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=strict)
+			available_quantity1 = self._get_available_quantity1(product_id, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=strict)
+			available_quantity2 = self._get_available_quantity2(product_id, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=strict)
+			
 			if float_compare(quantity, available_quantity, precision_rounding=rounding) > 0:
 				raise UserError(_('It is not possible to reserve more products of %s than you have in stock.', product_id.display_name))
 		elif float_compare(quantity, 0, precision_rounding=rounding) < 0:
 			# if we want to unreserve
 			available_quantity = sum(quants.mapped('reserved_quantity'))
+			available_quantity1 = sum(quants.mapped('reserved_quantity1'))
+			available_quantity2 = sum(quants.mapped('reserved_quantity2'))
 			if float_compare(abs(quantity), available_quantity, precision_rounding=rounding) > 0:
 				raise UserError(_('It is not possible to unreserve more products of %s than you have in stock.', product_id.display_name))
 		else:
@@ -369,19 +374,41 @@ class StockQuant(models.Model):
 		for quant in quants:
 			if float_compare(quantity, 0, precision_rounding=rounding) > 0:
 				max_quantity_on_quant = quant.quantity - quant.reserved_quantity
+				max_quantity_on_quant1 = quant.quantity1 - quant.reserved_quantity1
+				max_quantity_on_quant2 = quant.quantity2 - quant.reserved_quantity2
 				if float_compare(max_quantity_on_quant, 0, precision_rounding=rounding) <= 0:
 					continue
 				max_quantity_on_quant = min(max_quantity_on_quant, quantity)
+				max_quantity_on_quant1 = min(max_quantity_on_quant1, quantity1)
+				max_quantity_on_quant2 = min(max_quantity_on_quant2, quantity2)
 				quant.reserved_quantity += max_quantity_on_quant
+				quant.reserved_quantity1 += max_quantity_on_quant1
+				quant.reserved_quantity2 += max_quantity_on_quant2
 				reserved_quants.append((quant, max_quantity_on_quant))
+				reserved_quants.append((quant, max_quantity_on_quant1))
+				reserved_quants.append((quant, max_quantity_on_quant2))
 				quantity -= max_quantity_on_quant
+				quantity1 -= max_quantity_on_quant1
+				quantity2 -= max_quantity_on_quant2
 				available_quantity -= max_quantity_on_quant
+				available_quantity1 -= max_quantity_on_quant1
+				available_quantity2 -= max_quantity_on_quant2
 			else:
 				max_quantity_on_quant = min(quant.reserved_quantity, abs(quantity))
+				max_quantity_on_quant1 = min(quant.reserved_quantity1, abs(quantity1))
+				max_quantity_on_quant2 = min(quant.reserved_quantity2, abs(quantity2))
 				quant.reserved_quantity -= max_quantity_on_quant
+				quant.reserved_quantity1 -= max_quantity_on_quant1
+				quant.reserved_quantity2 -= max_quantity_on_quant2
 				reserved_quants.append((quant, -max_quantity_on_quant))
+				reserved_quants.append((quant, -max_quantity_on_quant1))
+				reserved_quants.append((quant, -max_quantity_on_quant2))
 				quantity += max_quantity_on_quant
+				quantity1 += max_quantity_on_quant1
+				quantity2 += max_quantity_on_quant2
 				available_quantity += max_quantity_on_quant
+				available_quantity1 += max_quantity_on_quant1
+				available_quantity2 += max_quantity_on_quant2
 
 			if float_is_zero(quantity, precision_rounding=rounding) or float_is_zero(available_quantity, precision_rounding=rounding):
 				break

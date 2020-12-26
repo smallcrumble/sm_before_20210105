@@ -413,6 +413,90 @@ class StockMove(models.Model):
 		#_logger.info('vals sblm return : %s', str(vals))
 		return vals
 
+	def _update_reserved_quantity(self, need, need1, need2, available_quantity, available_quantity1, available_quantity2, location_id, lot_id=None, package_id=None, owner_id=None, strict=True):
+		""" Create or update move lines.
+		"""
+		self.ensure_one()
+
+		if not lot_id:
+			lot_id = self.env['stock.production.lot']
+		if not package_id:
+			package_id = self.env['stock.quant.package']
+		if not owner_id:
+			owner_id = self.env['res.partner']
+
+		taken_quantity = min(available_quantity, need)
+		taken_quantity1 = min(available_quantity1, need1)
+		taken_quantity2 = min(available_quantity2, need2)
+
+		# `taken_quantity` is in the quants unit of measure. There's a possibility that the move's
+		# unit of measure won't be respected if we blindly reserve this quantity, a common usecase
+		# is if the move's unit of measure's rounding does not allow fractional reservation. We chose
+		# to convert `taken_quantity` to the move's unit of measure with a down rounding method and
+		# then get it back in the quants unit of measure with an half-up rounding_method. This
+		# way, we'll never reserve more than allowed. We do not apply this logic if
+		# `available_quantity` is brought by a chained move line. In this case, `_prepare_move_line_vals`
+		# will take care of changing the UOM to the UOM of the product.
+		if not strict:
+			taken_quantity_move_uom = self.product_id.uom_id._compute_quantity(taken_quantity, self.product_uom, rounding_method='DOWN')
+			taken_quantity = self.product_uom._compute_quantity(taken_quantity_move_uom, self.product_id.uom_id, rounding_method='HALF-UP')
+
+		quants = []
+		rounding = self.env['decimal.precision'].precision_get('Product Unit of Measure')
+
+		if self.product_id.tracking == 'serial':
+			if float_compare(taken_quantity, int(taken_quantity), precision_digits=rounding) != 0:
+				taken_quantity = 0
+			if float_compare(taken_quantity1, int(taken_quantity1), precision_digits=rounding) != 0:
+				taken_quantity1 = 0
+			if float_compare(taken_quantity2, int(taken_quantity2), precision_digits=rounding) != 0:
+				taken_quantity2 = 0
+
+		try:
+			with self.env.cr.savepoint():
+				if not float_is_zero(taken_quantity1, precision_rounding=self.product_id.uom_id.rounding):
+					quants = self.env['stock.quant']._update_reserved_quantity(
+						self.product_id, location_id, taken_quantity, taken_quantity1, taken_quantity2, lot_id=lot_id,
+						package_id=package_id, owner_id=owner_id, strict=strict
+					)
+		except UserError:
+			taken_quantity = 0
+			taken_quantity1 = 0
+			taken_quantity2 = 0
+
+		_logger.info('quants joged= %s',str(quants))
+		# Find a candidate move line to update or create a new one.
+		for reserved_quant, quantity in quants:
+			to_update = self.move_line_ids.filtered(lambda ml: ml._reservation_is_updatable(quantity, reserved_quant))
+			if to_update:
+				uom_quantity = self.product_id.uom_id._compute_quantity(quantity, to_update[0].product_uom_id, rounding_method='HALF-UP')
+				uom_quantity = float_round(uom_quantity, precision_digits=rounding)
+				uom_quantity1 = quantity1
+				uom_quantity2 = quantity2
+				uom_quantity_back_to_product_uom = to_update[0].product_uom_id._compute_quantity(uom_quantity, self.product_id.uom_id, rounding_method='HALF-UP')
+			if to_update and float_compare(quantity, uom_quantity_back_to_product_uom, precision_digits=rounding) == 0:
+				to_update[0].with_context(bypass_reservation_update=True).product_uom_qty += uom_quantity
+				to_update[0].with_context(bypass_reservation_update=True).product_uom_qty1 += uom_quantity1
+				to_update[0].with_context(bypass_reservation_update=True).product_uom_qty2 += uom_quantity2
+			else:
+				if self.product_id.tracking == 'serial':
+					for i in range(0, int(quantity)):
+						self.env['stock.move.line'].create(self._prepare_move_line_vals(quantity=1, quantity1=1, quantity2=1, reserved_quant=reserved_quant))
+				else:
+					self.env['stock.move.line'].create(self._prepare_move_line_vals(quantity=quantity, quantity1=quantity1, quantity2=quantity2, reserved_quant=reserved_quant))
+		return taken_quantity, taken_quantity1, taken_quantity2
+
+	
+
+	def _get_available_quantity1(self, location_id, lot_id=None, package_id=None, owner_id=None, strict=False, allow_negative=False):
+		self.ensure_one()
+		return self.env['stock.quant']._get_available_quantity(self.product_id, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=strict, allow_negative=allow_negative)
+
+	def _get_available_quantity2(self, location_id, lot_id=None, package_id=None, owner_id=None, strict=False, allow_negative=False):
+		self.ensure_one()
+		return self.env['stock.quant']._get_available_quantity(self.product_id, location_id, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=strict, allow_negative=allow_negative)
+
+
 	def _action_assign(self):
 		""" Reserve stock moves by creating their stock move lines. A stock move is
 		considered reserved once the sum of `product_qty` for all its move lines is
@@ -462,12 +546,16 @@ class StockMove(models.Model):
 						continue
 					# If we don't need any quantity, consider the move assigned.
 					need = missing_reserved_quantity
+					need1 = missing_reserved_quantity1
+					need2 = missing_reserved_quantity2
 					if float_is_zero(need, precision_rounding=rounding):
 						assigned_moves |= move
 						continue
 					# Reserve new quants and create move lines accordingly.
 					forced_package_id = move.package_level_id.package_id or None
 					available_quantity = move._get_available_quantity(move.location_id, package_id=forced_package_id)
+					available_quantity1 = move._get_available_quantity1(move.location_id, package_id=forced_package_id)
+					available_quantity2 = move._get_available_quantity2(move.location_id, package_id=forced_package_id)
 					if available_quantity <= 0:
 						continue
 					taken_quantity = move._update_reserved_quantity(need, available_quantity, move.location_id, package_id=forced_package_id, strict=False)
@@ -617,7 +705,7 @@ class Picking(models.Model):
 
 	@api.model
 	def create(self, vals):
-		_logger.info('--MASUK create PICKING--')
+		#_logger.info('--MASUK create PICKING--')
 		defaults = self.default_get(['name', 'picking_type_id'])
 		picking_type = self.env['stock.picking.type'].browse(vals.get('picking_type_id', defaults.get('picking_type_id')))
 		if vals.get('name', '/') == '/' and defaults.get('name', '/') == '/' and vals.get('picking_type_id', defaults.get('picking_type_id')):
@@ -660,7 +748,7 @@ class Picking(models.Model):
 		return res
 
 	def write(self, vals):
-		_logger.info('--MASUK WRITE PICKING--')
+		#_logger.info('--MASUK WRITE PICKING--')
 		if vals.get('picking_type_id') and self.state != 'draft':
 			raise UserError(_("Changing the operation type of this record is forbidden at this point."))
 		# set partner as a follower and unfollow old partner
@@ -693,7 +781,7 @@ class Picking(models.Model):
 		ctx = dict(self.env.context)
 		ctx.pop('default_immediate_transfer', None)
 		self = self.with_context(ctx)
-		_logger.info('--MASUK button validate PICKING--')
+		#_logger.info('--MASUK button validate PICKING--')
 		# Sanity checks.
 		pickings_without_moves = self.browse()
 		pickings_without_quantities = self.browse()
@@ -710,11 +798,9 @@ class Picking(models.Model):
 			picking.message_subscribe([self.env.user.partner_id.id])
 			picking_type = picking.picking_type_id
 			precision_digits = self.env['decimal.precision'].precision_get('Product Unit of Measure')
-			_logger.info('=precision_digits : %s=', str(precision_digits))
 			no_quantities_done = all(float_is_zero(move_line.qty_done, precision_digits=precision_digits) for move_line in picking.move_line_ids.filtered(lambda m: m.state not in ('done', 'cancel')))
-			_logger.info('=no_quantities_done : %s=', str(no_quantities_done))
 			no_reserved_quantities = all(float_is_zero(move_line.product_qty, precision_rounding=move_line.product_uom_id.rounding) for move_line in picking.move_line_ids)
-			_logger.info('=no_reserved_quantities : %s=', str(no_reserved_quantities))
+
 			if no_reserved_quantities and no_quantities_done:
 				pickings_without_quantities |= picking
 
