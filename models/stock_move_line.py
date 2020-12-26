@@ -199,15 +199,22 @@ class StockMoveLine(models.Model):
 
 				# move what's been actually done
 				quantity = ml.product_uom_id._compute_quantity(ml.qty_done, ml.move_id.product_id.uom_id, rounding_method='HALF-UP')
-				available_qty, in_date = Quant._update_available_quantity(ml.product_id, ml.location_id, -quantity, lot_id=ml.lot_id, package_id=ml.package_id, owner_id=ml.owner_id)
+				quantity1 = ml.product_uom_id._compute_quantity(ml.qty_done1, ml.move_id.product_id.uom_id1, rounding_method='HALF-UP')
+				quantity2 = ml.product_uom_id._compute_quantity(ml.qty_done2, ml.move_id.product_id.uom_id2, rounding_method='HALF-UP')
+				available_qty, in_date = Quant._update_available_quantity(ml.product_id, ml.location_id, -quantity, -quantity1, -quantity2, lot_id=ml.lot_id, package_id=ml.package_id, owner_id=ml.owner_id)
 				if available_qty < 0 and ml.lot_id:
 					# see if we can compensate the negative quants with some untracked quants
 					untracked_qty = Quant._get_available_quantity(ml.product_id, ml.location_id, lot_id=False, package_id=ml.package_id, owner_id=ml.owner_id, strict=True)
+					untracked_qty1 = Quant._get_available_quantity1(ml.product_id, ml.location_id, lot_id=False, package_id=ml.package_id, owner_id=ml.owner_id, strict=True)
+					untracked_qty2 = Quant._get_available_quantity2(ml.product_id, ml.location_id, lot_id=False, package_id=ml.package_id, owner_id=ml.owner_id, strict=True)
+
 					if untracked_qty:
 						taken_from_untracked_qty = min(untracked_qty, abs(quantity))
-						Quant._update_available_quantity(ml.product_id, ml.location_id, -taken_from_untracked_qty, lot_id=False, package_id=ml.package_id, owner_id=ml.owner_id)
-						Quant._update_available_quantity(ml.product_id, ml.location_id, taken_from_untracked_qty, lot_id=ml.lot_id, package_id=ml.package_id, owner_id=ml.owner_id)
-				Quant._update_available_quantity(ml.product_id, ml.location_dest_id, quantity, lot_id=ml.lot_id, package_id=ml.result_package_id, owner_id=ml.owner_id, in_date=in_date)
+						taken_from_untracked_qty1 = min(untracked_qty1, abs(quantity1))
+						taken_from_untracked_qty2 = min(untracked_qty2, abs(quantity2))
+						Quant._update_available_quantity(ml.product_id, ml.location_id, -taken_from_untracked_qty, -taken_from_untracked_qty1, -taken_from_untracked_qty2, lot_id=False, package_id=ml.package_id, owner_id=ml.owner_id)
+						Quant._update_available_quantity(ml.product_id, ml.location_id, taken_from_untracked_qty, taken_from_untracked_qty1, taken_from_untracked_qty2, lot_id=ml.lot_id, package_id=ml.package_id, owner_id=ml.owner_id)
+				Quant._update_available_quantity(ml.product_id, ml.location_dest_id, quantity, quantity1, quantity2, lot_id=ml.lot_id, package_id=ml.result_package_id, owner_id=ml.owner_id, in_date=in_date)
 			done_ml |= ml
 		# Reset the reserved quantity as we just moved it to the destination location.
 		_logger.info('QTY JADI 0')
