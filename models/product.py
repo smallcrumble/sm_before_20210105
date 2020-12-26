@@ -2,7 +2,9 @@
 
 from odoo import models, fields, api
 from odoo.tools.float_utils import float_round
+import logging
 
+_logger = logging.getLogger(__name__)
 
 class Product(models.Model):
 	_inherit = "product.product"
