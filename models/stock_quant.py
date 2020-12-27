@@ -312,7 +312,7 @@ class StockQuant(models.Model):
 					quant.write({
 						'quantity': quant.quantity + quantity,
 						'quantity1': quant.quantity1 + quantity1,
-						'quantity2': quant.quantity1 + quantity2,
+						'quantity2': quant.quantity2 + quantity2,
 						'in_date': in_date,
 					})
 					break
