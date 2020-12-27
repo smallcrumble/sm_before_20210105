@@ -112,8 +112,8 @@ class Product(models.Model):
 			res[product_id]['qty_available1'] = float_round(qty_available1, precision_rounding=rounding)
 			res[product_id]['qty_available2'] = float_round(qty_available2, precision_rounding=rounding)
 			res[product_id]['free_qty'] = float_round(qty_available - reserved_quantity, precision_rounding=rounding)
-			res[product_id]['incoming_qty'] = float_round(moves_in_res.get(product_id, 0.0), precision_rounding=rounding)
-			res[product_id]['outgoing_qty'] = float_round(moves_out_res.get(product_id, 0.0), precision_rounding=rounding)
+			res[product_id]['incoming_qty'] = float_round(moves_in_res.get(product_id, [0.0])[0], precision_rounding=rounding)
+			res[product_id]['outgoing_qty'] = float_round(moves_out_res.get(product_id, [0.0])[0], precision_rounding=rounding)
 			res[product_id]['virtual_available'] = float_round(
 				qty_available + res[product_id]['incoming_qty'] - res[product_id]['outgoing_qty'],
 				precision_rounding=rounding)
