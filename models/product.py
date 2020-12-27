@@ -100,12 +100,12 @@ class Product(models.Model):
 			res[product_id] = {}
 			if dates_in_the_past:
 				qty_available = quants_res.get(product_id, [0.0])[0] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
-				qty_available1 = quants_res.get(product_id, [0.0])[2] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
-				qty_available2 = quants_res.get(product_id, [0.0])[4] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
+				qty_available1 = quants_res.get(product_id, [0.0])[0] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
+				qty_available2 = quants_res.get(product_id, [0.0])[0] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
 			else:
 				qty_available = quants_res.get(product_id, [0.0])[0]
-				qty_available1 = quants_res.get(product_id, [0.0])[2]
-				qty_available2 = quants_res.get(product_id, [0.0])[4]
+				qty_available1 = quants_res.get(product_id, [0.0])[1]
+				qty_available2 = quants_res.get(product_id, [0.0])[1]
 
 			reserved_quantity = quants_res.get(product_id, [False, 0.0])[1]
 			res[product_id]['qty_available'] = float_round(qty_available, precision_rounding=rounding)
