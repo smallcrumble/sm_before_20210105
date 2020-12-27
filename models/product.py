@@ -105,8 +105,12 @@ class Product(models.Model):
 			else:
 				qty_available = quants_res.get(product_id, [0.0])[0]
 				_logger.info('qty_available : %s',str(qty_available))
-				qty_available1 = quants_res.get(product_id, [2.0])[0]
-				qty_available2 = quants_res.get(product_id, [4.0])[0]
+				try:
+					qty_available1 = quants_res.get(product_id, [0.0])[2]
+					qty_available2 = quants_res.get(product_id, [0.0])[4]
+				except:
+					qty_available1 = 0.0
+					qty_available2 = 0.0
 
 			reserved_quantity = quants_res.get(product_id, [False, 0.0])[1]
 			res[product_id]['qty_available'] = float_round(qty_available, precision_rounding=rounding)
