@@ -76,8 +76,8 @@ class Product(models.Model):
 		Quant = self.env['stock.quant'].with_context(active_test=False)
 		domain_move_in_todo = [('state', 'in', ('waiting', 'confirmed', 'assigned', 'partially_available'))] + domain_move_in
 		domain_move_out_todo = [('state', 'in', ('waiting', 'confirmed', 'assigned', 'partially_available'))] + domain_move_out
-		moves_in_res = dict((item['product_id'][0], item['product_qty']) for item in Move.read_group(domain_move_in_todo, ['product_id', 'product_qty'], ['product_id'], orderby='id'))
-		moves_out_res = dict((item['product_id'][0], item['product_qty']) for item in Move.read_group(domain_move_out_todo, ['product_id', 'product_qty'], ['product_id'], orderby='id'))
+		moves_in_res = dict((item['product_id'][0], item['product_qty'], item['product_qty1'], item['product_qty2']) for item in Move.read_group(domain_move_in_todo, ['product_id', 'product_qty', 'product_qty1', 'product_qty2'], ['product_id'], orderby='id'))
+		moves_out_res = dict((item['product_id'][0], item['product_qty'], item['product_qty1'], item['product_qty2']) for item in Move.read_group(domain_move_out_todo, ['product_id', 'product_qty', 'product_qty1', 'product_qty2'], ['product_id'], orderby='id'))
 		quants_res = dict((item['product_id'][0], (item['quantity'], item['reserved_quantity'], item['quantity1'], item['reserved_quantity1'], item['quantity2'], item['reserved_quantity2'])) for item in Quant.read_group(domain_quant, ['product_id', 'quantity', 'reserved_quantity', 'quantity1', 'reserved_quantity1', 'quantity2', 'reserved_quantity2'], ['product_id'], orderby='id'))
 		_logger.info('Quants_res : %s',str(quants_res))
 		if dates_in_the_past:
@@ -100,12 +100,12 @@ class Product(models.Model):
 			res[product_id] = {}
 			if dates_in_the_past:
 				qty_available = quants_res.get(product_id, [0.0])[0] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
-				qty_available1 = quants_res.get(product_id, [0.0])[2] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
-				qty_available2 = quants_res.get(product_id, [0.0])[4] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
+				qty_available1 = quants_res.get(product_id, [0.0])[0] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
+				qty_available2 = quants_res.get(product_id, [0.0])[0] - moves_in_res_past.get(product_id, 0.0) + moves_out_res_past.get(product_id, 0.0)
 			else:
 				qty_available = quants_res.get(product_id, [0.0])[0]
-				qty_available1 = quants_res.get(product_id, [0.0])[2]
-				qty_available2 = quants_res.get(product_id, [0.0])[4]
+				qty_available1 = quants_res.get(product_id, [0.0])[0]
+				qty_available2 = quants_res.get(product_id, [0.0])[0]
 
 			reserved_quantity = quants_res.get(product_id, [False, 0.0])[1]
 			res[product_id]['qty_available'] = float_round(qty_available, precision_rounding=rounding)
