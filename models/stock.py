@@ -193,15 +193,15 @@ class StockMove(models.Model):
 		for move in self:
 			if move.state == 'done':
 				move.availability = move.product_qty
-				move.availability1 = move.product_qty1
-				move.availability2 = move.product_qty2
+				move.availability1 = move.product_uom_qty1
+				move.availability2 = move.product_uom_qty2
 			else:
 				total_availability = self.env['stock.quant']._get_available_quantity(move.product_id, move.location_id) if move.product_id else 0.0
 				move.availability = min(move.product_qty, total_availability)
 				total_availability1 = self.env['stock.quant']._get_available_quantity1(move.product_id, move.location_id) if move.product_id else 0.0
-				move.availability1 = min(move.product_qty1, total_availability1)
+				move.availability1 = min(move.product_uom_qty1, total_availability1)
 				total_availability2 = self.env['stock.quant']._get_available_quantity2(move.product_id, move.location_id) if move.product_id else 0.0
-				move.availability2 = min(move.product_qty1, total_availability2)
+				move.availability2 = min(move.product_uom_qty2, total_availability2)
 
 	@api.depends('product_id', 'picking_type_id', 'picking_id', 'reserved_availability', 'priority', 'state', 'product_uom_qty', 'location_id')
 	def _compute_forecast_information(self):
@@ -214,8 +214,8 @@ class StockMove(models.Model):
 		not_product_moves = self.filtered(lambda move: move.product_id.type != 'product')
 		for move in not_product_moves:
 			move.forecast_availability = move.product_qty
-			move.forecast_availability1 = move.product_qty1
-			move.forecast_availability2 = move.product_qty2
+			move.forecast_availability1 = move.product_uom_qty1
+			move.forecast_availability2 = move.product_uom_qty2
 
 		product_moves = (self - not_product_moves)
 		warehouse_by_location = {loc: loc.get_warehouse() for loc in product_moves.location_id}

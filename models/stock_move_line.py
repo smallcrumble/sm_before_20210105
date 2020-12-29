@@ -187,8 +187,8 @@ class StockMoveLine(models.Model):
 				if not ml._should_bypass_reservation(ml.location_id) and float_compare(ml.qty_done, ml.product_uom_qty, precision_rounding=rounding) > 0:
 					qty_done_product_uom = ml.product_uom_id._compute_quantity(ml.qty_done, ml.product_id.uom_id, rounding_method='HALF-UP')
 					extra_qty = qty_done_product_uom - ml.product_qty
-					extra_qty1 = ml.qty_done1 - ml.product_qty1
-					extra_qty2 = ml.qty_done2 - ml.product_qty2
+					extra_qty1 = ml.qty_done1 - ml.product_uom_qty1
+					extra_qty2 = ml.qty_done2 - ml.product_uom_qty2
 					ml._free_reservation(ml.product_id, ml.location_id, extra_qty, extra_qty1, extra_qty2, lot_id=ml.lot_id, package_id=ml.package_id, owner_id=ml.owner_id, ml_to_ignore=done_ml)
 				# unreserve what's been reserved
 				if not ml._should_bypass_reservation(ml.location_id) and ml.product_id.type == 'product' and ml.product_qty:
@@ -273,8 +273,8 @@ class StockMoveLine(models.Model):
 			for candidate in outdated_candidates:
 				if float_compare(candidate.product_qty, quantity, precision_rounding=rounding) <= 0:
 					quantity -= candidate.product_qty
-					quantity1 -= candidate.product_qty1
-					quantity2 -= candidate.product_qty2
+					quantity1 -= candidate.product_uom_qty1
+					quantity2 -= candidate.product_uom_qty2
 					move_to_recompute_state |= candidate.move_id
 					if candidate.qty_done:
 						candidate.product_uom_qty = 0.0
@@ -291,11 +291,11 @@ class StockMoveLine(models.Model):
 						precision_rounding=self.product_uom_id.rounding,
 						rounding_method='UP')
 					quantity_split1 = float_round(
-						candidate.product_qty1 - quantity1,
+						candidate.product_uom_qty1 - quantity1,
 						precision_rounding=self.product_uom_id1.rounding,
 						rounding_method='UP')
 					quantity_split2 = float_round(
-						candidate.product_qty2 - quantity2,
+						candidate.product_uom_qty2 - quantity2,
 						precision_rounding=self.product_uom_id2.rounding,
 						rounding_method='UP')
 					candidate.product_uom_qty = self.product_id.uom_id._compute_quantity(quantity_split, candidate.product_uom_id, rounding_method='HALF-UP')
