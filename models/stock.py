@@ -546,8 +546,8 @@ class StockMove(models.Model):
 						continue
 					# If we don't need any quantity, consider the move assigned.
 					need = missing_reserved_quantity
-					need1 = missing_reserved_quantity1
-					need2 = missing_reserved_quantity2
+					need1 = missing_reserved_uom_quantity1
+					need2 = missing_reserved_uom_quantity2
 					if float_is_zero(need, precision_rounding=rounding):
 						assigned_moves |= move
 						continue
