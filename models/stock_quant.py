@@ -139,11 +139,15 @@ class StockQuant(models.Model):
 		if 'available_quantity' in fields:
 			if 'quantity' not in fields:
 				fields.append('quantity')
+			if 'quantity1' not in fields:
 				fields.append('quantity1')
+			if 'quantity2' not in fields:
 				fields.append('quantity2')
 			if 'reserved_quantity' not in fields:
 				fields.append('reserved_quantity')
+			if 'reserved_quantity1' not in fields:
 				fields.append('reserved_quantity1')
+			if 'reserved_quantity2' not in fields:
 				fields.append('reserved_quantity2')
 		result = super(StockQuant, self).read_group(domain, fields, groupby, offset=offset, limit=limit, orderby=orderby, lazy=lazy)
 		for group in result:
