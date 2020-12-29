@@ -207,15 +207,15 @@ class StockMove(models.Model):
 	def _compute_forecast_information(self):
 		""" Compute forecasted information of the related product by warehouse."""
 		self.forecast_availability = False
-		self.forecast_availability1 = False
-		self.forecast_availability2 = False
+		#self.forecast_availability1 = False
+		#self.forecast_availability2 = False
 		self.forecast_expected_date = False
 
 		not_product_moves = self.filtered(lambda move: move.product_id.type != 'product')
 		for move in not_product_moves:
 			move.forecast_availability = move.product_qty
-			move.forecast_availability1 = move.product_uom_qty1
-			move.forecast_availability2 = move.product_uom_qty2
+			#move.forecast_availability1 = move.product_uom_qty1
+			#move.forecast_availability2 = move.product_uom_qty2
 
 		product_moves = (self - not_product_moves)
 		warehouse_by_location = {loc: loc.get_warehouse() for loc in product_moves.location_id}
@@ -228,8 +228,8 @@ class StockMove(models.Model):
 				outgoing_unreserved_moves_per_warehouse[warehouse_by_location[move.location_id]] |= move
 			elif picking_type.code in self._consuming_picking_types():
 				move.forecast_availability = move.reserved_availability
-				move.forecast_availability1 = move.reserved_availability1
-				move.forecast_availability2 = move.reserved_availability2
+				#move.forecast_availability1 = move.reserved_availability1
+				#move.forecast_availability2 = move.reserved_availability2
 
 		for warehouse, moves in outgoing_unreserved_moves_per_warehouse.items():
 			if not warehouse:  # No prediction possible if no warehouse.
@@ -245,8 +245,8 @@ class StockMove(models.Model):
 				lines = [l for l in forecast_lines if l["move_out"] == move._origin and l["replenishment_filled"] is True]
 				if lines:
 					move.forecast_availability = sum(m['quantity'] for m in lines)
-					move.forecast_availability1 = sum(m['quantity1'] for m in lines)
-					move.forecast_availability2 = sum(m['quantity2'] for m in lines)
+					#move.forecast_availability1 = sum(m['quantity1'] for m in lines)
+					#move.forecast_availability2 = sum(m['quantity2'] for m in lines)
 					move_ins_lines = list(filter(lambda report_line: report_line['move_in'], lines))
 					if move_ins_lines:
 						expected_date = max(m['move_in'].date for m in move_ins_lines)
