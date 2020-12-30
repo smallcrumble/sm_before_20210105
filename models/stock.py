@@ -413,7 +413,7 @@ class StockMove(models.Model):
 		#_logger.info('vals sblm return : %s', str(vals))
 		return vals
 
-	def _update_reserved_quantity(self, need, need1, need2, available_quantity, available_quantity1, available_quantity2, location_id, lot_id=None, package_id=None, owner_id=None, strict=True):
+	def _update_reserved_quantity(self, need, need1=None, need2=None, available_quantity, available_quantity1=None, available_quantity2=None, location_id, lot_id=None, package_id=None, owner_id=None, strict=True):
 		""" Create or update move lines.
 		"""
 		self.ensure_one()
@@ -558,7 +558,7 @@ class StockMove(models.Model):
 					available_quantity2 = move._get_available_quantity2(move.location_id, package_id=forced_package_id)
 					if available_quantity <= 0:
 						continue
-					taken_quantity = move._update_reserved_quantity(need, available_quantity, move.location_id, package_id=forced_package_id, strict=False)
+					taken_quantity = move._update_reserved_quantity(need, need1, need2, available_quantity, available_quantity1, available_quantity2, move.location_id, package_id=forced_package_id, strict=False)
 					if float_is_zero(taken_quantity, precision_rounding=rounding):
 						continue
 					if float_compare(need, taken_quantity, precision_rounding=rounding) == 0:
