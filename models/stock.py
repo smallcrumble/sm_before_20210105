@@ -558,7 +558,7 @@ class StockMove(models.Model):
 					available_quantity2 = move._get_available_quantity2(move.location_id, package_id=forced_package_id)
 					if available_quantity <= 0:
 						continue
-					taken_quantity = move._update_reserved_quantity(need, need1, need2, available_quantity, available_quantity1, available_quantity2, move.location_id, package_id=forced_package_id, strict=False)
+					taken_quantity, taken_quantity1, taken_quantity2 = move._update_reserved_quantity(need, need1, need2, available_quantity, available_quantity1, available_quantity2, move.location_id, package_id=forced_package_id, strict=False)
 					if float_is_zero(taken_quantity, precision_rounding=rounding):
 						continue
 					if float_compare(need, taken_quantity, precision_rounding=rounding) == 0:
