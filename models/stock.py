@@ -413,7 +413,7 @@ class StockMove(models.Model):
 		#_logger.info('vals sblm return : %s', str(vals))
 		return vals
 
-	def _update_reserved_quantity(self, need, need1=None, need2=None, available_quantity, available_quantity1=None, available_quantity2=None, location_id, lot_id=None, package_id=None, owner_id=None, strict=True):
+	def _update_reserved_quantity(self, need, need1, need2, available_quantity, available_quantity1, available_quantity2, location_id, lot_id=None, package_id=None, owner_id=None, strict=True):
 		""" Create or update move lines.
 		"""
 		self.ensure_one()
