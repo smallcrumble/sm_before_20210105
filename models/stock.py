@@ -373,7 +373,7 @@ class StockMove(models.Model):
 			origin = (move.group_id and move.group_id.name or (move.origin or move.picking_id.name or "/"))
 			procurement_requests.append(self.env['procurement.group'].Procurement(
 				move.product_id, move.product_uom_qty, move.product_uom,
-				move.product_uom_qty1, move.product_uom1, move.product_uom_qty2, move.product_uom2,
+				#move.product_uom_qty1, move.product_uom1, move.product_uom_qty2, move.product_uom2,
 				move.location_id, move.rule_id and move.rule_id.name or "/",
 				origin, move.company_id, values))
 		self.env['procurement.group'].run(procurement_requests, raise_user_error=not self.env.context.get('from_orderpoint'))
