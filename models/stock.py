@@ -4,6 +4,7 @@ from odoo.tools.float_utils import float_compare, float_is_zero, float_round
 from odoo import SUPERUSER_ID, _, api, fields, models
 from odoo.exceptions import UserError
 from collections import defaultdict
+from itertools import groupby
 import logging
 
 _logger = logging.getLogger(__name__)
