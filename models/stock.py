@@ -5,6 +5,7 @@ from odoo import SUPERUSER_ID, _, api, fields, models
 from odoo.exceptions import UserError
 from collections import defaultdict
 from itertools import groupby
+from operator import itemgetter
 import logging
 
 _logger = logging.getLogger(__name__)
